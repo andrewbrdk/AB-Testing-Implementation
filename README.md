@@ -8,6 +8,12 @@ source ./pyvenv/bin/activate
 pip install flask
 ```
 
+Playwright is used to simulate visits.
+```bash
+pip install playwright
+playwright install chromium
+```
+
 1) The experiment group is generated on the backend using a `random.choice(['A', 'B'])` call.
 The group is stored in cookies to ensure a consistent variant on each request.
 
