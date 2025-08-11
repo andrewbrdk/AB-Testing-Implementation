@@ -10,7 +10,7 @@ pip install flask
 
 Playwright is used to simulate visits.
 ```bash
-pip install playwright
+pip install playwright aiohttp
 playwright install chromium
 ```
 
