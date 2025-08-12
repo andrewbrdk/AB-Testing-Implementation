@@ -45,7 +45,6 @@ INDEX_TEMPLATE = """
             const exp = experiments["homepage_button_test"];
             let group = exp.active && exp.group ? exp.group : exp.fallback;
             const container = document.getElementById("variant-container");
-
             if (group === "A") {
                 container.innerHTML = `
                     <h3>Variant A</h3>
@@ -94,69 +93,8 @@ EXPERIMENTS = {
         "active": True,
         "groups": {'A': 50, 'B': 50},
         "fallback": "A"
-    },
+    }
 }
-
-EXPERIMENTS_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>Experiments Control</title>
-    <style>
-        th, td {
-            text-align: left;
-            padding: 10px;
-            vertical-align: top;
-        }
-    </style>
-</head>
-<body>
-    <h1>Experiments</h1>
-    <table>
-        <thead>
-            <tr>
-                <th>Experiment</th>
-                <th>Active</th>
-                <th>Groups: split</th>
-                <th>Fallback</th>
-                <th>Toggle</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for name, exp in experiments.items() %}
-            <tr>
-                <td>{{ name }}</td>
-                <td>{{ 'On' if exp.active else 'Off' }}</td>
-                <td>
-                    {% for g, split in exp.groups.items() %}
-                        {{ g }}: {{ split }} <br>
-                    {% endfor %}
-                </td>
-                <td>{{ exp.fallback }}</td>
-                <td>
-                    <form method="POST" action="/experiments/toggle">
-                        <input type="hidden" name="experiment" value="{{ name }}">
-                        <button type="submit">{{ 'Turn Off' if exp.active else 'Turn On' }}</button>
-                    </form>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
-</body>
-</html>
-"""
-
-@app.route('/experiments', methods=['GET'])
-def experiments_page():
-    return render_template_string(EXPERIMENTS_TEMPLATE, experiments=EXPERIMENTS)
-
-@app.route('/experiments/toggle', methods=['POST'])
-def experiments_toggle():
-    experiment = request.form.get('experiment')
-    if experiment in EXPERIMENTS:
-        EXPERIMENTS[experiment]['active'] = not EXPERIMENTS[experiment]['active']
-    return '', 302, {'Location': '/experiments'}
 
 @app.route('/api/experiments')
 def api_experiments():
