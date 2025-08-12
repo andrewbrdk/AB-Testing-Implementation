@@ -11,23 +11,22 @@ CLICK_PROBS = {
     'B': 0.2
 }
 
-async def simulate_visit(context):
+async def simulate_visit(browser):
+    context = await browser.new_context()
     page = await context.new_page()
     await page.goto(BASE_URL)
-    cookies = await context.cookies()
-    exp_group = next((c["value"] for c in cookies if c["name"] == "exp_group"), None)
-    if not exp_group:
-        heading = await page.text_content("h3")
-        if heading and "Variant A" in heading:
-            exp_group = "A"
-        elif heading and "Variant B" in heading:
-            exp_group = "B"
-        else:
-            exp_group = None
-    if random.random() < CLICK_PROBS[exp_group]:
+    heading = await page.text_content("h3")
+    if heading and "Variant A" in heading:
+        exp_group = "A"
+    elif heading and "Variant B" in heading:
+        exp_group = "B"
+    else:
+        exp_group = None
+    if random.random() < CLICK_PROBS.get(exp_group, None):
         await page.click("button")
         await page.wait_for_load_state('load')
     await page.close()
+    await context.close()
     return exp_group
 
 async def fetch_events():
@@ -38,8 +37,7 @@ async def fetch_events():
                 resp.raise_for_status()
                 return await resp.json()
     except Exception as e:
-        print(f"Failed to fetch events: {e}")
-    return None
+        return None
 
 async def main():
     parser = argparse.ArgumentParser(description="Simulate A/B test visits")
@@ -53,29 +51,25 @@ async def main():
     counts = Counter()
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
+        #todo: parallelize
         for _ in range(N):
-            context = await browser.new_context()
-            group = await simulate_visit(context)
+            group = await simulate_visit(browser)
             counts[group] += 1
-            await context.close()
         await browser.close()
 
     print("A/B Test Split:")
     for group in sorted(counts):
-        count = counts[group]
-        p = (count / N) * 100
-        print(f"Group {group}: {count} visits ({p:.2f}%)")
+        p = (counts[group] / N) * 100
+        print(f"Group {group}: {counts[group]} visits ({p:.2f}%)")
 
     events = await fetch_events()
     if events is not None:
         print("Event Stats from /events:")
-        visit_counts = Counter(e["exp_group"] for e in events if e.get("event") == "pageview")
-        click_counts = Counter(e["exp_group"] for e in events if e.get("event") == "button_click")
-        for group in sorted(counts):
-            visits = visit_counts[group]
-            clicks = click_counts[group]
-            ctr = (clicks / visits * 100) if visits else 0
-            print(f"Group {group}: {visits} visits, {clicks} clicks, CTR={ctr:.2f}%")
+        visits = Counter(e["exp_group"] for e in events if e.get("event") == "pageview")
+        clicks = Counter(e["exp_group"] for e in events if e.get("event") == "button_click")
+        for group in sorted(visits | clicks):
+            ctr = (clicks[group] / visits[group] * 100) if visits[group] else 0
+            print(f"Group {group}: {visits[group]} visits, {clicks[group]} clicks, CTR={ctr:.2f}%")
 
 if __name__ == "__main__":
     asyncio.run(main())

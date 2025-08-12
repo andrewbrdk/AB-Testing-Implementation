@@ -1,16 +1,12 @@
 # Web A/B Tests Implementation Examples
 
-Install `flask` to run the examples.
+Install Flask to run the examples.
+Playwright is used to simulate visits.
 
 ```bash
 python -m venv pyvenv
 source ./pyvenv/bin/activate
-pip install flask
-```
-
-Playwright is used to simulate visits.
-```bash
-pip install playwright aiohttp
+pip install flask aiohttp playwright
 playwright install chromium
 ```
 
