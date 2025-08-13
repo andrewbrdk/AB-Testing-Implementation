@@ -306,9 +306,10 @@ if __name__ == '__main__':
 ```bash
 python 5_apiexps.py
 ```
-Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
-Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
+Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
+Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
 Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)
+
 
 ```python
 from flask import Flask, request, make_response, render_template_string, jsonify
@@ -445,8 +446,8 @@ if __name__ == '__main__':
 ```bash
 python 6_multipleexps.py
 ```
-Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
-Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
+Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
+Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
 Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)
 
 ```python
@@ -601,8 +602,8 @@ python 7_expadmin.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
-Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)
-Experiments: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)  
+Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)  
+Experiments: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
 
 ```python
