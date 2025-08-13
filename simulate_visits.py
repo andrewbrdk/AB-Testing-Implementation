@@ -17,17 +17,24 @@ async def simulate_visit(browser):
     await page.goto(BASE_URL)
     heading = await page.text_content("h3")
     if heading and "Variant A" in heading:
-        exp_group = "A"
+        button_group = "A"
     elif heading and "Variant B" in heading:
-        exp_group = "B"
+        button_group = "B"
     else:
-        exp_group = None
-    if random.random() < CLICK_PROBS.get(exp_group):
+        button_group = None
+    headline = await page.text_content("#headline-container h2")
+    if headline and "Future" in headline:
+        headline_group = "Future"
+    elif headline and "Journey" in headline:
+        headline_group = "Journey"
+    else:
+        headline_group = None
+    if random.random() < CLICK_PROBS.get(button_group):
         await page.click("button")
         await page.wait_for_load_state('load')
     await page.close()
     await context.close()
-    return exp_group
+    return button_group, headline_group
 
 async def fetch_events():
     url = f"{BASE_URL}/events"
@@ -48,19 +55,26 @@ async def main():
     args = parser.parse_args()
     N = args.num_visits
 
-    counts = Counter()
+    button_counts = Counter()
+    headline_counts = Counter()
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         #todo: parallelize
         for _ in range(N):
-            group = await simulate_visit(browser)
-            counts[group] += 1
+            button_group, headline_group = await simulate_visit(browser)
+            button_counts[button_group] += 1
+            headline_counts[headline_group] += 1
         await browser.close()
 
-    print("A/B Test Split:")
-    for group in sorted(counts):
-        p = (counts[group] / N) * 100
-        print(f"Group {group}: {counts[group]} visits ({p:.2f}%)")
+    print("Button Test Split:")
+    for group in sorted(button_counts):
+        pct = (button_counts[group] / N) * 100
+        print(f"Group {group}: {button_counts[group]} visits ({pct:.2f}%)")
+
+    print("Headline Test Split:")
+    for group in sorted(headline_counts):
+        pct = (headline_counts[group] / N) * 100
+        print(f"Group {group}: {headline_counts[group]} visits ({pct:.2f}%)")
 
     events = await fetch_events()
     if events is not None:
