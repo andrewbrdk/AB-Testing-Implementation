@@ -1,6 +1,7 @@
 from flask import Flask, request, make_response, render_template_string, jsonify
 import uuid
 import hashlib
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -34,6 +35,7 @@ INDEX_TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     deviceId: deviceId,
+                    source: 'client',
                     event: eventName,
                     params: params
                 })
@@ -107,6 +109,8 @@ def api_experiments():
             "fallback": info["fallback"],
             "group": group,
         }
+    if device_id:
+        post_event("exp_groups", device_id, result)
     return jsonify(result)
 
 def assign_group(device_id: str, experiment: str) -> str:
@@ -122,6 +126,17 @@ def assign_group(device_id: str, experiment: str) -> str:
         if hash_mod < c:
             return group_name
     return None
+
+def post_event(event_name: str, device_id: str, params: dict):
+    payload = {
+        "ts": datetime.utcnow().isoformat(),
+        "deviceId": device_id,
+        "source": 'backend',
+        "event": event_name,
+        "params": params
+    }
+    with app.test_request_context("/events", method="POST", json=payload):
+        return events()
 
 if __name__ == '__main__':
     app.run(debug=True)

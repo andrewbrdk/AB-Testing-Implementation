@@ -23,6 +23,7 @@ TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     device_id: deviceId,
+                    source: 'client',
                     event: eventName,
                     exp_group: expGroup,
                     params: params
