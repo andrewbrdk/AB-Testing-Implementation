@@ -22,7 +22,7 @@ async def simulate_visit(browser):
         exp_group = "B"
     else:
         exp_group = None
-    if random.random() < CLICK_PROBS.get(exp_group, None):
+    if random.random() < CLICK_PROBS.get(exp_group):
         await page.click("button")
         await page.wait_for_load_state('load')
     await page.close()
@@ -65,8 +65,8 @@ async def main():
     events = await fetch_events()
     if events is not None:
         print("Event Stats from /events:")
-        visits = Counter(e["exp_group"] for e in events if e.get("event") == "pageview")
-        clicks = Counter(e["exp_group"] for e in events if e.get("event") == "button_click")
+        visits = Counter(e.get("exp_group") for e in events if e.get("event") == "pageview")
+        clicks = Counter(e.get("exp_group") for e in events if e.get("event") == "button_click")
         for group in sorted(visits | clicks):
             ctr = (clicks[group] / visits[group] * 100) if visits[group] else 0
             print(f"Group {group}: {visits[group]} visits, {clicks[group]} clicks, CTR={ctr:.2f}%")
