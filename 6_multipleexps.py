@@ -62,7 +62,7 @@ INDEX_TEMPLATE = """
             const exp2 = experiments["headline_test"];
             let group2 = exp2.active && exp2.group ? exp2.group : exp2.fallback;
             const container2 = document.getElementById("headline-container");
-            if (group2 === "X") {
+            if (group2 === "Future") {
                 container2.innerHTML = `<h2>Welcome to the Future!</h2>`;
             } else {
                 container2.innerHTML = `<h2>Your Journey Starts Here!</h2>`;
@@ -105,8 +105,8 @@ EXPERIMENTS = {
     },
     "headline_test": {
         "active": True,
-        "groups": {'X': 50, 'Y': 50},
-        "fallback": "X"
+        "groups": {'Future': 50, 'Journey': 50},
+        "fallback": "Future"
     }
 }
 
