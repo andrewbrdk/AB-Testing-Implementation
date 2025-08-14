@@ -230,6 +230,7 @@ TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     device_id: deviceId,
+                    source: 'client',
                     event: eventName,
                     exp_group: expGroup,
                     params: params
@@ -315,6 +316,7 @@ Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experi
 from flask import Flask, request, make_response, render_template_string, jsonify
 import uuid
 import hashlib
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -348,6 +350,7 @@ INDEX_TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     deviceId: deviceId,
+                    source: 'client',
                     event: eventName,
                     params: params
                 })
@@ -421,6 +424,8 @@ def api_experiments():
             "fallback": info["fallback"],
             "group": group,
         }
+    if device_id:
+        post_event("exp_groups", device_id, result)
     return jsonify(result)
 
 def assign_group(device_id: str, experiment: str) -> str:
@@ -436,6 +441,17 @@ def assign_group(device_id: str, experiment: str) -> str:
         if hash_mod < c:
             return group_name
     return None
+
+def post_event(event_name: str, device_id: str, params: dict):
+    payload = {
+        "ts": datetime.utcnow().isoformat(),
+        "deviceId": device_id,
+        "source": 'backend',
+        "event": event_name,
+        "params": params
+    }
+    with app.test_request_context("/events", method="POST", json=payload):
+        return events()
 
 if __name__ == '__main__':
     app.run(debug=True)
@@ -454,6 +470,7 @@ Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experi
 from flask import Flask, request, make_response, render_template_string, jsonify
 import uuid
 import hashlib
+from datetime import datetime
 
 app = Flask(__name__)
 
@@ -488,6 +505,7 @@ INDEX_TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     deviceId: deviceId,
+                    source: 'client',
                     event: eventName,
                     params: params
                 })
@@ -515,7 +533,7 @@ INDEX_TEMPLATE = """
             const exp2 = experiments["headline_test"];
             let group2 = exp2.active && exp2.group ? exp2.group : exp2.fallback;
             const container2 = document.getElementById("headline-container");
-            if (group2 === "X") {
+            if (group2 === "Future") {
                 container2.innerHTML = `<h2>Welcome to the Future!</h2>`;
             } else {
                 container2.innerHTML = `<h2>Your Journey Starts Here!</h2>`;
@@ -558,8 +576,8 @@ EXPERIMENTS = {
     },
     "headline_test": {
         "active": True,
-        "groups": {'X': 50, 'Y': 50},
-        "fallback": "X"
+        "groups": {'Future': 50, 'Journey': 50},
+        "fallback": "Future"
     }
 }
 
@@ -574,6 +592,8 @@ def api_experiments():
             "fallback": info["fallback"],
             "group": group,
         }
+    if device_id:
+        post_event("exp_groups", device_id, result)
     return jsonify(result)
 
 def assign_group(device_id: str, experiment: str) -> str:
@@ -589,6 +609,17 @@ def assign_group(device_id: str, experiment: str) -> str:
         if hash_mod < c:
             return group_name
     return None
+
+def post_event(event_name: str, device_id: str, params: dict):
+    payload = {
+        "ts": datetime.utcnow().isoformat(),
+        "deviceId": device_id,
+        "source": 'backend',
+        "event": event_name,
+        "params": params
+    }
+    with app.test_request_context("/events", method="POST", json=payload):
+        return events()
 
 if __name__ == '__main__':
     app.run(debug=True)
@@ -607,104 +638,7 @@ Experiments: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experimen
 
 
 ```python
-from flask import Flask, request, make_response, render_template_string, jsonify
-import uuid
-import hashlib
-
-app = Flask(__name__)
-
-INDEX_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>A/B Test</title>
-</head>
-<body>
-    <h1>A/B Test</h1>
-    <div id="headline-container"></div>
-    <div id="variant-container">Loading...</div>
-
-    <script>
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
-
-        async function getExperiments(deviceId) {
-            const res = await fetch(`/api/experiments?device_id=${deviceId}`);
-            return await res.json();
-        }
-
-        async function sendEvent(eventName, params = {}) {
-            let ts = new Date().toISOString();
-            await fetch('/events', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ts: ts,
-                    deviceId: deviceId,
-                    event: eventName,
-                    params: params
-                })
-            });
-        }
-
-        async function renderPage() {
-            const experiments = await getExperiments(deviceId);
-            const exp = experiments["homepage_button_test"];
-            let group = exp.active && exp.group ? exp.group : exp.fallback;
-            const container = document.getElementById("variant-container");
-            if (group === "A") {
-                container.innerHTML = `
-                    <h3>Variant A</h3>
-                    <p>This is version A of the site.</p>
-                    <button onclick="sendEvent('button_click', { btn_type: 'A' })">Click A</button>
-                `;
-            } else {
-                container.innerHTML = `
-                    <h3>Variant B</h3>
-                    <p>This is version B of the site.</p>
-                    <button onclick="sendEvent('button_click', { btn_type: 'B' })">Click B</button>
-                `;
-            }
-            const exp2 = experiments["headline_test"];
-            let group2 = exp2.active && exp2.group ? exp2.group : exp2.fallback;
-            const container2 = document.getElementById("headline-container");
-            if (group2 === "X") {
-                container2.innerHTML = `<h2>Welcome to the Future!</h2>`;
-            } else {
-                container2.innerHTML = `<h2>Your Journey Starts Here!</h2>`;
-            }
-        }
-
-        const deviceId = getCookie("device_id");
-        sendEvent("pageview", {});
-        renderPage();
-    </script>
-</body>
-</html>
-"""
-
-@app.route('/')
-def index():
-    device_id = request.cookies.get("device_id")
-    if not device_id:
-        device_id = str(uuid.uuid4())
-    response = make_response(render_template_string(INDEX_TEMPLATE))
-    response.set_cookie("device_id", device_id, max_age=60*60*24*365)
-    return response
-
-EVENTS = []
-
-@app.route('/events', methods=['GET', 'POST'])
-def events():
-    if request.method == 'POST':
-        data = request.json
-        EVENTS.append(data)
-        return jsonify({"status": "ok"})
-    else:
-        return jsonify(EVENTS)
+# ...
 
 EXPERIMENTS = {
     "homepage_button_test": {
@@ -714,8 +648,8 @@ EXPERIMENTS = {
     },
     "headline_test": {
         "active": True,
-        "groups": {'X': 50, 'Y': 50},
-        "fallback": "X"
+        "groups": {'Future': 50, 'Journey': 50},
+        "fallback": "Future"
     }
 }
 
@@ -791,6 +725,8 @@ def api_experiments():
             "fallback": info["fallback"],
             "group": group,
         }
+    if device_id:
+        post_event("exp_groups", device_id, result)
     return jsonify(result)
 
 def assign_group(device_id: str, experiment: str) -> str:
@@ -806,6 +742,17 @@ def assign_group(device_id: str, experiment: str) -> str:
         if hash_mod < c:
             return group_name
     return None
+
+def post_event(event_name: str, device_id: str, params: dict):
+    payload = {
+        "ts": datetime.utcnow().isoformat(),
+        "deviceId": device_id,
+        "source": 'backend',
+        "event": event_name,
+        "params": params
+    }
+    with app.test_request_context("/events", method="POST", json=payload):
+        return events()
 
 if __name__ == '__main__':
     app.run(debug=True)
