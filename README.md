@@ -1,9 +1,10 @@
 # Web A/B Tests Implementation Examples
 
-Install Flask to run the examples.
-Playwright is used to simulate visits.
+Dependencies:
 
 ```bash
+git clone https://github.com/andrewbrdk/Web-AB-Testing-Demo
+cd Web-AB-Testing-Demo
 python -m venv pyvenv
 source ./pyvenv/bin/activate
 pip install flask aiohttp playwright
@@ -309,7 +310,7 @@ python 5_apiexps.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
-Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)
+Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)
 
 
 ```python
@@ -337,8 +338,8 @@ INDEX_TEMPLATE = """
             if (parts.length === 2) return parts.pop().split(';').shift();
         }
 
-        async function getExperiments(deviceId) {
-            const res = await fetch(`/api/experiments?device_id=${deviceId}`);
+        async function getExpGroups(deviceId) {
+            const res = await fetch(`/api/expgroups?device_id=${deviceId}`);
             return await res.json();
         }
 
@@ -358,7 +359,7 @@ INDEX_TEMPLATE = """
         }
 
         async function renderPage() {
-            const experiments = await getExperiments(deviceId);
+            const experiments = await getExpGroups(deviceId);
             const exp = experiments["homepage_button_test"];
             let group = exp.active && exp.group ? exp.group : exp.fallback;
             const container = document.getElementById("variant-container");
@@ -415,6 +416,10 @@ EXPERIMENTS = {
 
 @app.route('/api/experiments')
 def api_experiments():
+    return jsonify(EXPERIMENTS)
+
+@app.route('/api/expgroups')
+def api_expgroups():
     device_id = request.args.get("device_id")
     result = {}
     for exp_name, info in EXPERIMENTS.items():
@@ -460,11 +465,11 @@ if __name__ == '__main__':
 6) Multiple experiments
 
 ```bash
-python 6_multipleexps.py
+python 6_multiexps.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
-Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)
+Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)
 
 ```python
 from flask import Flask, request, make_response, render_template_string, jsonify
@@ -492,8 +497,8 @@ INDEX_TEMPLATE = """
             if (parts.length === 2) return parts.pop().split(';').shift();
         }
 
-        async function getExperiments(deviceId) {
-            const res = await fetch(`/api/experiments?device_id=${deviceId}`);
+        async function getExpGroups(deviceId) {
+            const res = await fetch(`/api/expgroups?device_id=${deviceId}`);
             return await res.json();
         }
 
@@ -513,7 +518,7 @@ INDEX_TEMPLATE = """
         }
 
         async function renderPage() {
-            const experiments = await getExperiments(deviceId);
+            const experiments = await getExpGroups(deviceId);
             const exp = experiments["homepage_button_test"];
             let group = exp.active && exp.group ? exp.group : exp.fallback;
             const container = document.getElementById("variant-container");
@@ -583,6 +588,10 @@ EXPERIMENTS = {
 
 @app.route('/api/experiments')
 def api_experiments():
+    return jsonify(EXPERIMENTS)
+
+@app.route('/api/expgroups')
+def api_expgroups():
     device_id = request.args.get("device_id")
     result = {}
     for exp_name, info in EXPERIMENTS.items():
@@ -633,7 +642,7 @@ python 7_expadmin.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
-Groups: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)  
+Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)  
 Experiments: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
 
@@ -716,6 +725,10 @@ def experiments_toggle():
 
 @app.route('/api/experiments')
 def api_experiments():
+    return jsonify(EXPERIMENTS)
+
+@app.route('/api/expgroups')
+def api_expgroups():
     device_id = request.args.get("device_id")
     result = {}
     for exp_name, info in EXPERIMENTS.items():

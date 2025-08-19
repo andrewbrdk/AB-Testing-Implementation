@@ -23,8 +23,8 @@ INDEX_TEMPLATE = """
             if (parts.length === 2) return parts.pop().split(';').shift();
         }
 
-        async function getExperiments(deviceId) {
-            const res = await fetch(`/api/experiments?device_id=${deviceId}`);
+        async function getExpGroups(deviceId) {
+            const res = await fetch(`/api/expgroups?device_id=${deviceId}`);
             return await res.json();
         }
 
@@ -44,7 +44,7 @@ INDEX_TEMPLATE = """
         }
 
         async function renderPage() {
-            const experiments = await getExperiments(deviceId);
+            const experiments = await getExpGroups(deviceId);
             const exp = experiments["homepage_button_test"];
             let group = exp.active && exp.group ? exp.group : exp.fallback;
             const container = document.getElementById("variant-container");
@@ -175,6 +175,10 @@ def experiments_toggle():
 
 @app.route('/api/experiments')
 def api_experiments():
+    return jsonify(EXPERIMENTS)
+
+@app.route('/api/expgroups')
+def api_expgroups():
     device_id = request.args.get("device_id")
     result = {}
     for exp_name, info in EXPERIMENTS.items():

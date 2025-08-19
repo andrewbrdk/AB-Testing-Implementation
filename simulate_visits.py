@@ -49,6 +49,37 @@ async def fetch_events():
     except Exception as e:
         return None
 
+async def fetch_experiments():
+    url = f"{BASE_URL}/api/experiments"
+    try:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(url, timeout=5) as resp:
+                resp.raise_for_status()
+                return await resp.json()
+    except Exception as e:
+        return None
+
+async def count_exp_visits_clicks(exp_name):
+    visits, clicks = Counter(), Counter()
+    events = await fetch_events()
+    if events is not None:
+        device_groups = {}
+        for e in events:
+            if e.get("event") == "exp_groups":
+                device_groups[e.get("deviceId")] = e["params"].get(exp_name).get('group')
+        for e in events:
+            group = device_groups.get(e.get('deviceId')) or e.get("exp_group")
+            if e.get("event") == "pageview":
+                visits[group] += 1
+            elif e.get("event") == "button_click":
+                clicks[group] += 1
+    return visits, clicks
+
+def ctr_ci(v, c):
+    ctr = (c / v) if v > 0 else None
+    ci = 2 * sqrt(ctr * (1 - ctr) / v) if v > 0 else None
+    return ctr, ci
+
 async def main():
     parser = argparse.ArgumentParser(description="Simulate A/B test visits")
     parser.add_argument(
@@ -71,36 +102,42 @@ async def main():
         await browser.close()
 
     if button_counts:
-        print("Button Test Split:")
+        print("Button Exp Split:")
         for group in sorted(button_counts):
             part = (button_counts[group] / N) * 100
             print(f"Group {group}: {button_counts[group]} visits ({part:.2f}%)")
     if headline_counts:
-        print("Headline Test Split:")
+        print("Headline Exp Split:")
         for group in sorted(headline_counts):
             part = (headline_counts[group] / N) * 100
             print(f"Group {group}: {headline_counts[group]} visits ({part:.2f}%)")
 
-    events = await fetch_events()
-    if events is not None:
-        exp_name = "homepage_button_test"
-        device_groups = {}
-        for e in events:
-            if e.get("event") == "exp_groups":
-                device_groups[e.get("deviceId")] = e["params"].get(exp_name).get('group')
-        visits = Counter()
-        clicks = Counter()
-        for e in events:
-            group = e.get("exp_group") or device_groups[e.get('deviceId')]
-            if e.get("event") == "pageview":
-                visits[group] += 1
-            elif e.get("event") == "button_click":
-                clicks[group] += 1
-        print(f"Button Test /events:")
-        for group in sorted(visits | clicks):
-            ctr = (clicks[group] / visits[group]) if visits[group] else 0
-            ci = 2*sqrt(ctr * (1-ctr) / visits[group])
-            print(f"Group {group}: {visits[group]} visits, {clicks[group]} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {CLICK_PROBS.get(group)*100:.2f}%")
+    exp_name = "homepage_button_test"
+    visits, clicks = await count_exp_visits_clicks(exp_name)
+    print(f"Button Exp /events:")
+    for group in sorted(visits | clicks):
+        v, c = visits[group], clicks[group]
+        ctr, ci = ctr_ci(v, c)
+        print(f"Group {group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {CLICK_PROBS.get(group)*100:.2f}%")
+
+    exps = await fetch_experiments()
+    if exps is None or len(exps) == 1:
+        return
+    button_split = exps.get("homepage_button_test", {}).get('groups')
+    total = sum(button_split.values())
+    normalized = {k: v / total for k, v in button_split.items()}
+
+    exp_name = "headline_test"
+    visits, clicks = await count_exp_visits_clicks(exp_name)
+    print(f"Headline Exp /events:")
+    for group in sorted(visits | clicks):
+        v, c = visits[group], clicks[group]
+        ctr, ci = ctr_ci(v, c)
+        expected_ctr = sum([normalized[g] * CLICK_PROBS[g] for g in normalized.keys()])
+        print(f"Group {group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Expected: {expected_ctr*100:.2f}%")
+
+    #todo: check independence. use events
+    #P(a & b) = p(a) * p(b)
 
 if __name__ == "__main__":
     asyncio.run(main())
