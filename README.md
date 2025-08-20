@@ -1,6 +1,17 @@
-# Web A/B Tests Implementation Examples
+# Web A/B Testing Demo
 
-Dependencies:
+*A series of web A/B tests examples, demonstrating random assignment, 
+hashing, backend and frontend experiment logic, event tracking, and an experiments admin page.*
+
+&nbsp; &nbsp; *[1. Random.choice](#1-randomchoice)*  
+&nbsp; &nbsp; *[2. Hashing](#2-hashing)*  
+&nbsp; &nbsp; *[3. Frontend](#3-frontend)*  
+&nbsp; &nbsp; *[4. Events](#4-events)*  
+&nbsp; &nbsp; *[5. Experiments API](#5-experiments-api)*  
+&nbsp; &nbsp; *[6. Multiple Experiments](#6-multiple-experiments)*  
+&nbsp; &nbsp; *[7. Experiments Admin Page](#7-experiments-admin-page)*  
+
+Create a Python virtual environment and install the required packages to run the examples:
 
 ```bash
 git clone https://github.com/andrewbrdk/Web-AB-Testing-Demo
@@ -11,7 +22,8 @@ pip install flask aiohttp playwright
 playwright install chromium
 ```
 
-1) The experiment group is generated on the backend using a `random.choice(['A', 'B'])` call.
+#### 1. Random.choice
+The experiment group is generated on the backend using a `random.choice(['A', 'B'])` call.
 The group is stored in cookies to ensure a consistent variant on each request.
 
 ```bash
@@ -71,7 +83,8 @@ Group A: 488 visits (48.80%)
 Group B: 512 visits (51.20%)
 ```
 
-2) The experiment group is computed as mod2 from the hash of
+#### 2. Hashing
+The experiment group is computed as mod2 from the hash of
 the device_id and the experiment name. 
 
 ```bash
@@ -138,8 +151,8 @@ Group A: 492 visits (49.20%)
 Group B: 508 visits (50.80%)
 ```
 
-
-3) The frontend receives both groups' page versions and renders the appropriate variant.
+#### 3. Frontend
+The frontend receives both groups' page versions and renders the appropriate variant.
 
 ```bash
 python 3_frontendrender.py
@@ -223,8 +236,8 @@ Group A: 492 visits (49.20%)
 Group B: 508 visits (50.80%)
 ```
 
-
-4) Analytical events are logged.
+#### 4. Events
+Analytical events are logged.
 
 ```bash
 python 4_events.py
@@ -344,7 +357,7 @@ Group B: 521 visits, 119 clicks, Conv=22.84 +- 3.68%, Exact: 20.00%
 ```
 
 
-5) Experiments API
+#### 5. Experiments API
 
 ```bash
 python 5_apiexps.py
@@ -517,7 +530,7 @@ Group B: 531 visits, 121 clicks, Conv=22.79 +- 3.64%, Exact: 20.00%
 ```
 
 
-6) Multiple experiments
+#### 6. Multiple Experiments
 
 ```bash
 python 6_multiexps.py
@@ -717,7 +730,7 @@ Split Independence homepage_button_test/headline_test:
 ```
 
 
-7) Experiments info page.
+#### 7. Experiments Admin Page
 
 ```bash
 python 7_expadmin.py
