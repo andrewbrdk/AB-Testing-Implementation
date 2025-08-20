@@ -60,6 +60,17 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
+The `simulate_visits.py` script simulates page visits,
+and the group split is close to the expected 50/50.
+
+```bash
+> python simulate_visits.py -n 1000
+
+Button Exp Split:
+Group A: 488 visits (48.80%)
+Group B: 512 visits (51.20%)
+```
+
 2) The experiment group is computed as mod2 from the hash of
 the device_id and the experiment name. 
 
@@ -117,6 +128,14 @@ def index():
 
 if __name__ == '__main__':
     app.run(debug=True)
+```
+
+```bash
+> python simulate_visits.py -n 1000
+
+Button Exp Split:
+Group A: 492 visits (49.20%)
+Group B: 508 visits (50.80%)
 ```
 
 
@@ -195,6 +214,15 @@ def index():
 if __name__ == '__main__':
     app.run(debug=True)
 ```
+
+```bash
+> python simulate_visits.py -n 1000
+
+Button Exp Split:
+Group A: 492 visits (49.20%)
+Group B: 508 visits (50.80%)
+```
+
 
 4) Analytical events are logged.
 
@@ -302,6 +330,19 @@ def events():
 if __name__ == '__main__':
     app.run(debug=True)
 ```
+
+```bash
+> python simulate_visits.py -n 1000
+
+Button Exp Split:
+Group A: 479 visits (47.90%)
+Group B: 521 visits (52.10%)
+
+Button Exp events:
+Group A: 479 visits, 37 clicks, Conv=7.72 +- 2.44%, Exact: 10.00%
+Group B: 521 visits, 119 clicks, Conv=22.84 +- 3.68%, Exact: 20.00%
+```
+
 
 5) Experiments API
 
@@ -461,6 +502,19 @@ def post_event(event_name: str, device_id: str, params: dict):
 if __name__ == '__main__':
     app.run(debug=True)
 ```
+
+```bash
+> python simulate_visits.py -n 1000
+
+Button Exp Split:
+Group A: 469 visits (46.90%)
+Group B: 531 visits (53.10%)
+
+Button Exp events:
+Group A: 469 visits, 43 clicks, Conv=9.17 +- 2.67%, Exact: 10.00%
+Group B: 531 visits, 121 clicks, Conv=22.79 +- 3.64%, Exact: 20.00%
+```
+
 
 6) Multiple experiments
 
@@ -634,6 +688,32 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
+```bash
+> python simulate_visits.py -n 1000
+
+Button Exp Split:
+Group A: 506 visits (50.60%)
+Group B: 494 visits (49.40%)
+
+Headline Exp Split:
+Group Future: 499 visits (49.90%)
+Group Journey: 501 visits (50.10%)
+
+Button Exp events:
+Group A: 522 visits, 45 clicks, Conv=8.62 +- 2.46%, Exact: 10.00%
+Group B: 508 visits, 107 clicks, Conv=21.06 +- 3.62%, Exact: 20.00%
+
+Headline Exp events:
+Group Future: 512 visits, 74 clicks, Conv=14.45 +- 3.11%, Expected: 15.00%
+Group Journey: 518 visits, 78 clicks, Conv=15.06 +- 3.14%, Expected: 15.00%
+
+Split Independence homepage_button_test/headline_test:
+('A', 'Future'): 23.69%, expected (25.00%)
+('A', 'Journey'): 26.99%, expected (25.00%)
+('B', 'Future'): 26.02%, expected (25.00%)
+('B', 'Journey'): 23.30%, expected (25.00%)
+```
+
 
 7) Experiments info page.
 
@@ -769,4 +849,30 @@ def post_event(event_name: str, device_id: str, params: dict):
 
 if __name__ == '__main__':
     app.run(debug=True)
+```
+
+```bash
+> python simulate_visits.py -n 1000
+
+Button Exp Split:
+Group A: 499 visits (49.90%)
+Group B: 501 visits (50.10%)
+
+Headline Exp Split:
+Group Future: 487 visits (48.70%)
+Group Journey: 513 visits (51.30%)
+
+Button Exp events:
+Group A: 499 visits, 45 clicks, Conv=9.02 +- 2.56%, Exact: 10.00%
+Group B: 501 visits, 111 clicks, Conv=22.16 +- 3.71%, Exact: 20.00%
+
+Headline Exp events:
+Group Future: 487 visits, 74 clicks, Conv=15.20 +- 3.25%, Expected: 15.00%
+Group Journey: 513 visits, 82 clicks, Conv=15.98 +- 3.24%, Expected: 15.00%
+
+Split Independence homepage_button_test/headline_test:
+('A', 'Future'): 24.30%, expected (25.00%)
+('A', 'Journey'): 25.60%, expected (25.00%)
+('B', 'Future'): 24.40%, expected (25.00%)
+('B', 'Journey'): 25.70%, expected (25.00%)
 ```
