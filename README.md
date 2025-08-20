@@ -351,6 +351,7 @@ python 5_apiexps.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
+Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)  
 Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)
 
 
@@ -523,6 +524,7 @@ python 6_multiexps.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
+Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)  
 Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)
 
 ```python
@@ -722,8 +724,9 @@ python 7_expadmin.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
+Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)  
 Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)  
-Experiments: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
+Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
 
 ```python
