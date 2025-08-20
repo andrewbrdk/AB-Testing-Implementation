@@ -12,32 +12,36 @@ CLICK_PROBS = {
     'B': 0.2
 }
 
+MAX_CONCURRENT = 50
+SEM = asyncio.Semaphore(MAX_CONCURRENT)
+
 async def simulate_visit(browser):
-    context = await browser.new_context()
-    page = await context.new_page()
-    await page.goto(BASE_URL)
-    button_group = None
-    button_exp_h3 = await page.query_selector("h3")
-    if button_exp_h3:
-        h = await button_exp_h3.text_content()
-        if "Variant A" in h:
-            button_group = "A"
-        elif "Variant B" in h:
-            button_group = "B"
-    headline_group = None
-    headline_exp_h2 = await page.query_selector("#headline-container h2")
-    if headline_exp_h2:
-        h = await headline_exp_h2.text_content()
-        if "Future" in h:
-            headline_group = "Future"
-        elif "Journey" in h:
-            headline_group = "Journey"
-    if random.random() < CLICK_PROBS.get(button_group):
-        await page.click("button")
-        await page.wait_for_load_state('load')
-    await page.close()
-    await context.close()
-    return button_group, headline_group
+    async with SEM:
+        context = await browser.new_context()
+        page = await context.new_page()
+        await page.goto(BASE_URL)
+        button_group = None
+        button_exp_h3 = await page.query_selector("h3")
+        if button_exp_h3:
+            h = await button_exp_h3.text_content()
+            if "Variant A" in h:
+                button_group = "A"
+            elif "Variant B" in h:
+                button_group = "B"
+        headline_group = None
+        headline_exp_h2 = await page.query_selector("#headline-container h2")
+        if headline_exp_h2:
+            h = await headline_exp_h2.text_content()
+            if "Future" in h:
+                headline_group = "Future"
+            elif "Journey" in h:
+                headline_group = "Journey"
+        if random.random() < CLICK_PROBS.get(button_group):
+            await page.click("button")
+            await page.wait_for_load_state('load')
+        await page.close()
+        await context.close()
+        return button_group, headline_group
 
 async def fetch_events():
     url = f"{BASE_URL}/events"
@@ -93,9 +97,9 @@ async def main():
     headline_counts = Counter()
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
-        #todo: parallelize
-        for _ in range(N):
-            button_group, headline_group = await simulate_visit(browser)
+        t = [simulate_visit(browser) for i in range(N)]
+        results = await asyncio.gather(*t)
+        for button_group, headline_group in results:
             button_counts[button_group] += 1
             if headline_group is not None:
                 headline_counts[headline_group] += 1
@@ -114,6 +118,8 @@ async def main():
 
     exp_name = "homepage_button_test"
     visits, clicks = await count_exp_visits_clicks(exp_name)
+    if len(visits) == 0:
+        return
     print(f"Button Exp /events:")
     for group in sorted(visits | clicks):
         v, c = visits[group], clicks[group]
