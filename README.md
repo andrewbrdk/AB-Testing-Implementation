@@ -1,9 +1,9 @@
 # Web A/B Testing Demo
 
-*A series of web A/B tests examples, demonstrating random assignment, 
+*A series of web A/B tests examples, demonstrating random group assignment, 
 hashing, backend and frontend experiment logic, event tracking, and an experiments admin page.*
 
-&nbsp; &nbsp; *[1. Random.choice](#1-randomchoice)*  
+&nbsp; &nbsp; *[1. Random](#1-random)*  
 &nbsp; &nbsp; *[2. Hashing](#2-hashing)*  
 &nbsp; &nbsp; *[3. Frontend](#3-frontend)*  
 &nbsp; &nbsp; *[4. Events](#4-events)*  
@@ -22,7 +22,17 @@ pip install flask aiohttp playwright
 playwright install chromium
 ```
 
-#### 1. Random.choice
+In web services, A/B testing helps measure the impact of new features on key metrics. 
+By running the original and modified versions in parallel and randomly assigning users, 
+it keeps groups balanced and ensures external factors affect them equally. 
+This way, differences in metrics can be attributed to the new feature.
+
+A person should see only one version of an experiment. 
+In practice, experiments are tied to a device or browser, 
+so switching devices may occasionally show a different variant.
+
+#### 1. Random
+
 The experiment group is generated on the backend using a `random.choice(['A', 'B'])` call.
 The group is stored in cookies to ensure a consistent variant on each request.
 
