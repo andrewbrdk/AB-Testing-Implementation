@@ -86,7 +86,11 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
-To see a different page version, open it in a new incognito window or 
+* `variant = request.cookies.get('variant')` - check for existing variant cookie.
+* `variant = random.choice(['A', 'B'])` - assign random variant if none.
+* `response.set_cookie('variant', variant, max_age=60*60*24*30)` - save variant in cookie for consistency.
+
+To view a different page variant, open the page in a new incognito window or 
 clear cookies and refresh the page.
 
 <p align="center">
@@ -105,8 +109,10 @@ Group B: 512 visits (51.20%)
 ```
 
 #### 2. Hashing
-The experiment group is computed as mod2 from the hash of
-the device_id and the experiment name. 
+A unique `device_id` is assigned to each new visitor and stored in cookies.
+The experiment group is computed as `hash(device_id || experiment_name) % 2`,
+ensuring deterministic variant.
+
 
 ```bash
 python 2_hash.py
@@ -164,6 +170,13 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
+* `device_id = str(uuid.uuid4())` - generate a unique ID for new visitors.
+* `variant = assign_group(device_id, EXPERIMENT_NAME)` - determine experiment group.
+* `key = f"{device_id}:{experiment}"` - compute group as `hash(device_id || experiment_name) % 2`.
+* `response.set_cookie("device_id", device_id, max_age=60*60*24*365)` - store `device_id` in cookies.
+
+The split between groups is uniform.
+
 ```bash
 > python simulate_visits.py -n 1000
 
@@ -173,7 +186,9 @@ Group B: 508 visits (50.80%)
 ```
 
 #### 3. Frontend
-The frontend receives both groups' page versions and renders the appropriate variant.
+The frontend gets both versions and renders the appropriate variant.
+Hashing allows compute groups on the frontend if a `device_id` is available.
+However, the group is computed on the backend and sent in the "exp_group" cookie.
 
 ```bash
 python 3_frontendrender.py
@@ -249,6 +264,12 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
+* `<div id="variant-container">Loading...</div>` - placeholder for experiment content.
+* `const expGroup = getCookie("exp_group");` - reads the assigned group from cookies.
+* `if (expGroup === "A") { container.innerHTML =` - replaces the placeholder with the variant corresponding to the user’s group.
+
+The split is correct.
+
 ```bash
 > python simulate_visits.py -n 1000
 
@@ -258,7 +279,13 @@ Group B: 508 visits (50.80%)
 ```
 
 #### 4. Events
-Analytical events are logged.
+Analytical events `pageview` and `button_click` are logged
+on page visits and button clicks.
+Each event is a JSON containing a timestamp, `device_id`, `event_name`,
+and additional information.
+The `params` field holds event-specific details.
+Events are sent to the `/events` endpoint.
+In production, event collection is typically handled by a separate dedicated service.
 
 ```bash
 python 4_events.py
@@ -368,6 +395,18 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
+* `async function sendEvent(eventName, params = {})` - sends analytical events.
+* `<button onclick="sendEvent('button_click', { btn_type: 'A' })">` - logs a group A `button_click` event.
+* `sendEvent("pageview", {});` - logs a `pageview` event.
+* `EVENTS = []` - events are stored in the `EVENTS` variable on the server.
+* `@app.route('/events', methods=['GET', 'POST'])` - server endpoint for collecting events.
+
+In `simulate_visits.py`, page visits and button clicks are imitated.
+Button click probabilities differ
+between groups `CLICK_PROBS = {'A': 0.1, 'B': 0.2}`.
+Each visit and click generates analytical events.
+Conversions measured from these events are compared to the `CLICK_PROBS` values.
+
 ```bash
 > python simulate_visits.py -n 1000
 
@@ -382,6 +421,11 @@ Group B: 521 visits, 119 clicks, Conv=22.84 +- 3.68%, Exact: 20.00%
 
 
 #### 5. Experiments API
+
+An experiment config defines groups with weights,
+a fallback group, and an active/inactive status.
+It can extend to multiple experiments with arbitrary group splits.
+Clients retrieve their groups from the server.
 
 ```bash
 python 5_apiexps.py
@@ -541,6 +585,16 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
+* `async function getExpGroups(deviceId)` - fetches the experiment groups for a device.
+* `let group = exp.active && exp.group ? exp.group : exp.fallback;` - determines which variant to render.
+* `EXPERIMENTS` - server-side storage for experiments.
+* `@app.route('/api/experiments')` - returns experiments info.
+* `@app.route('/api/expgroups')` - returns groups for a given `device_id`.
+* `hash_mod = hash_int % total_parts` - supports multiple groups with arbitrary splits.
+* `post_event("exp_groups", device_id, result)` - backend sends an analytics event when groups are computed.
+
+The split and conversions are correct.
+
 ```bash
 > python simulate_visits.py -n 1000
 
@@ -555,6 +609,9 @@ Group B: 531 visits, 121 clicks, Conv=22.79 +- 3.64%, Exact: 20.00%
 
 
 #### 6. Multiple Experiments
+
+A second experiment with two groups is added, creating four total page variants.
+Both `api/experiments` and `api/expgroups` support multiple experiments.
 
 ```bash
 python 6_multiexps.py
@@ -730,6 +787,21 @@ def post_event(event_name: str, device_id: str, params: dict):
 if __name__ == '__main__':
     app.run(debug=True)
 ```
+
+* `<div id="headline-container"></div>` - second experiment container.
+* `async function getExpGroups(deviceId)` - fetches groups for both experiments.
+* `if (group2 === "Future") {` - renders a variant according to the group.
+* `"headline_test": {` - a config for the second experiment.
+
+On each visit, both experiments are assigned and `simulate_visits`
+confirms splits are close to expected.
+Click probability depends only on the first experiment `CLICK_PROBS = {'A': 0.1, 'B': 0.2}`,
+while the second has no effect.
+The second experiment conversions are expected to equal `CLICK_PROBS['A'] * share_A + CLICK_PROBS['B'] * share_B`
+in both groups, and computed values are close to this.
+Split independence
+`P((exp1, group_i) and (exp2, group_j)) = P(exp1, group_i) * P(exp2, group_j)`
+is also confirmed.
 
 ```bash
 > python simulate_visits.py -n 1000
