@@ -1,7 +1,8 @@
 # Web A/B Testing Demo
 
 *A series of web A/B tests examples, demonstrating random group assignment, 
-hashing, backend and frontend experiment logic, event tracking, and an experiments admin page.*
+hashing, backend and frontend experiment logic, event tracking, multiple experiments, 
+and an experiments admin page.*
 
 &nbsp; &nbsp; *[1. Random](#1-random)*  
 &nbsp; &nbsp; *[2. Hashing](#2-hashing)*  
@@ -41,6 +42,9 @@ python 1_rndchoice.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
+<p align="center">
+  <img src="https://i.postimg.cc/D0wHb05J/versions-ab.png" alt="Versions A,B" width="800" />
+</p>
 
 ```python
 from flask import Flask, render_template_string, request, make_response
@@ -81,6 +85,13 @@ def index():
 if __name__ == '__main__':
     app.run(debug=True)
 ```
+
+To see a different page version, open it in a new incognito window or 
+clear cookies and refresh the page.
+
+<p align="center">
+	<img src="https://i.postimg.cc/Hn81jj6Y/cookies.png" alt="Clean Cookies" width="800"/>
+</p>
 
 The `simulate_visits.py` script simulates page visits,
 and the group split is close to the expected 50/50.
@@ -255,6 +266,9 @@ python 4_events.py
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
 
+<p align="center">
+  <img src="https://i.postimg.cc/L6V9gQSG/events.png" alt="Events" width="800" />
+</p>
 
 ```python
 from flask import Flask, request, make_response, render_template_string, jsonify
@@ -550,6 +564,10 @@ Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
 Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)  
 Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)
 
+<p align="center">
+  <img src="https://i.postimg.cc/tCPyGX23/multipleexps.png" alt="Multiple Exps" width="800" />
+</p>
+
 ```python
 from flask import Flask, request, make_response, render_template_string, jsonify
 import uuid
@@ -751,6 +769,9 @@ Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/e
 Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)  
 Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
+<p align="center">
+  <img src="https://i.postimg.cc/wTkfmZvK/expadmin.png" alt="Experiments Admin" width="800" />
+</p>
 
 ```python
 # ...
