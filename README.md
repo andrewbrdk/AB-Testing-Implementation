@@ -11,6 +11,7 @@ and an experiments admin page.*
 &nbsp; &nbsp; *[5. Experiments API](#5-experiments-api)*  
 &nbsp; &nbsp; *[6. Multiple Experiments](#6-multiple-experiments)*  
 &nbsp; &nbsp; *[7. Experiments Admin Page](#7-experiments-admin-page)*  
+&nbsp; &nbsp; *[Conclusion](#conclusion)*
 
 Create a Python virtual environment and install the required packages to run the examples:
 
@@ -86,6 +87,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
+* `{% if variant == 'A' %}` - the backend serves the variant corresponding to the experiment group
 * `variant = request.cookies.get('variant')` - check for existing variant cookie.
 * `variant = random.choice(['A', 'B'])` - assign random variant if none.
 * `response.set_cookie('variant', variant, max_age=60*60*24*30)` - save variant in cookie for consistency.
@@ -187,8 +189,9 @@ Group B: 508 visits (50.80%)
 
 #### 3. Frontend
 The frontend gets both versions and renders the appropriate variant.
-Hashing allows compute groups on the frontend if a `device_id` is available.
-However, the group is computed on the backend and sent in the "exp_group" cookie.
+The group is computed on the backend and sent in the "exp_group" cookie.
+Using hashing, it is also possible to compute the group on the frontend if a `device_id` is available.
+
 
 ```bash
 python 3_frontendrender.py
@@ -807,30 +810,34 @@ is also confirmed.
 > python simulate_visits.py -n 1000
 
 Button Exp Split:
-Group A: 506 visits (50.60%)
-Group B: 494 visits (49.40%)
+Group A: 527 visits (52.70%)
+Group B: 473 visits (47.30%)
 
 Headline Exp Split:
-Group Future: 499 visits (49.90%)
-Group Journey: 501 visits (50.10%)
+Group Future: 501 visits (50.10%)
+Group Journey: 499 visits (49.90%)
 
 Button Exp events:
-Group A: 522 visits, 45 clicks, Conv=8.62 +- 2.46%, Exact: 10.00%
-Group B: 508 visits, 107 clicks, Conv=21.06 +- 3.62%, Exact: 20.00%
+Group A: 527 visits, 57 clicks, Conv=10.82 +- 2.71%, Exact: 10.00%
+Group B: 473 visits, 85 clicks, Conv=17.97 +- 3.53%, Exact: 20.00%
 
 Headline Exp events:
-Group Future: 512 visits, 74 clicks, Conv=14.45 +- 3.11%, Expected: 15.00%
-Group Journey: 518 visits, 78 clicks, Conv=15.06 +- 3.14%, Expected: 15.00%
+Group Future: 501 visits, 74 clicks, Conv=14.77 +- 3.17%, Exact: 15.00%
+Group Journey: 499 visits, 68 clicks, Conv=13.63 +- 3.07%, Exact: 15.00%
 
 Split Independence homepage_button_test/headline_test:
-('A', 'Future'): 23.69%, expected (25.00%)
-('A', 'Journey'): 26.99%, expected (25.00%)
-('B', 'Future'): 26.02%, expected (25.00%)
-('B', 'Journey'): 23.30%, expected (25.00%)
+('A', 'Future'): 26.20%, independence 25.00%
+('A', 'Journey'): 26.50%, independence 25.00%
+('B', 'Future'): 23.90%, independence 25.00%
+('B', 'Journey'): 23.40%, independence 25.00%
 ```
 
 
 #### 7. Experiments Admin Page
+
+An experiments admin page is added to display experiment configurations.
+It allows switching experiments on or off.
+In production, it is common to use a dedicated service to manage experiments.
 
 ```bash
 python 7_expadmin.py
@@ -970,28 +977,41 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
+* `EXPERIMENTS_TEMPLATE` - experiments admin page template
+* `@app.route('/experiments', methods=['GET'])` - serves the experiments page
+* `@app.route('/experiments/toggle', methods=['POST'])` - toggle experiments on or off
+
+The splits and conversions are correct.
+
 ```bash
 > python simulate_visits.py -n 1000
 
 Button Exp Split:
-Group A: 499 visits (49.90%)
-Group B: 501 visits (50.10%)
+Group A: 474 visits (47.40%)
+Group B: 526 visits (52.60%)
 
 Headline Exp Split:
-Group Future: 487 visits (48.70%)
-Group Journey: 513 visits (51.30%)
+Group Future: 499 visits (49.90%)
+Group Journey: 501 visits (50.10%)
 
 Button Exp events:
-Group A: 499 visits, 45 clicks, Conv=9.02 +- 2.56%, Exact: 10.00%
-Group B: 501 visits, 111 clicks, Conv=22.16 +- 3.71%, Exact: 20.00%
+Group A: 474 visits, 41 clicks, Conv=8.65 +- 2.58%, Exact: 10.00%
+Group B: 526 visits, 112 clicks, Conv=21.29 +- 3.57%, Exact: 20.00%
 
 Headline Exp events:
-Group Future: 487 visits, 74 clicks, Conv=15.20 +- 3.25%, Expected: 15.00%
-Group Journey: 513 visits, 82 clicks, Conv=15.98 +- 3.24%, Expected: 15.00%
+Group Future: 499 visits, 79 clicks, Conv=15.83 +- 3.27%, Exact: 15.00%
+Group Journey: 501 visits, 74 clicks, Conv=14.77 +- 3.17%, Exact: 15.00%
 
 Split Independence homepage_button_test/headline_test:
-('A', 'Future'): 24.30%, expected (25.00%)
-('A', 'Journey'): 25.60%, expected (25.00%)
-('B', 'Future'): 24.40%, expected (25.00%)
-('B', 'Journey'): 25.70%, expected (25.00%)
+('A', 'Future'): 23.60%, independence 25.00%
+('A', 'Journey'): 23.80%, independence 25.00%
+('B', 'Future'): 26.30%, independence 25.00%
+('B', 'Journey'): 26.30%, independence 25.00%
 ```
+
+#### Conclusion
+
+Web A/B testing examples covering group assignment, variant delivery,
+event tracking, and experiment management have been presented.
+The examples provide insight into the inner workings of
+real-world experimentation systems.
