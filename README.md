@@ -1015,3 +1015,7 @@ Web A/B testing examples covering group assignment, variant delivery,
 event tracking, and experiment management have been presented.
 The examples provide insight into the inner workings of
 real-world experimentation systems.
+
+Image sources  
+&nbsp; &nbsp; `moon.jpg`: [NASA, Public domain, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Full_disc_of_the_moon_was_photographed_by_the_Apollo_17_crewmen.jpg)  
+&nbsp; &nbsp; `mars.jpg`: [NASA/JPL, Public domain, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Mars_Daily_Global_Image_from_April_1999.jpg)  
