@@ -115,7 +115,7 @@ async def check_split_independence(exp1, exp2):
     total = sum(split.values())
     print(f"Split Independence {exp1}/{exp2}:")
     for g in sorted(split):
-        print(f'{g}: {split[g] / total * 100:.2f}%, expected ({expected_split[g] * 100:.2f}%)')
+        print(f'{g}: {split[g] / total * 100:.2f}%, independence {expected_split[g] * 100:.2f}%')
 
 async def main():
     parser = argparse.ArgumentParser(description="Simulate A/B test visits")
@@ -176,7 +176,7 @@ async def main():
         v, c = visits[group], clicks[group]
         ctr, ci = ctr_ci(v, c)
         expected_ctr = sum([normalized[g] * CLICK_PROBS[g] for g in normalized.keys()])
-        print(f"Group {group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Expected: {expected_ctr*100:.2f}%")
+        print(f"Group {group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {expected_ctr*100:.2f}%")
     print("")
 
     await check_split_independence("homepage_button_test", "headline_test")
