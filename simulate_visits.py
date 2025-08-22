@@ -8,8 +8,8 @@ import aiohttp
 
 BASE_URL = "http://127.0.0.1:5000"
 CLICK_PROBS = {
-    'A': 0.1,
-    'B': 0.2
+    'Moon': 0.1,
+    'Mars': 0.2
 }
 
 MAX_CONCURRENT = 30
@@ -20,14 +20,15 @@ async def simulate_visit(browser):
         context = await browser.new_context()
         page = await context.new_page()
         await page.goto(BASE_URL)
-        button_group = None
-        button_exp_h3 = await page.query_selector("h3")
-        if button_exp_h3:
-            h = await button_exp_h3.text_content()
-            if "Variant A" in h:
-                button_group = "A"
-            elif "Variant B" in h:
-                button_group = "B"
+        moon_mars_group = None
+        await page.wait_for_selector("h1")
+        moon_mars_exp_h1 = await page.query_selector("h1")
+        if moon_mars_exp_h1:
+            h = await moon_mars_exp_h1.text_content()
+            if "Moon" in h:
+                moon_mars_group = "Moon"
+            elif "Mars" in h:
+                moon_mars_group = "Mars"
         headline_group = None
         headline_exp_h2 = await page.query_selector("#headline-container h2")
         if headline_exp_h2:
@@ -36,12 +37,12 @@ async def simulate_visit(browser):
                 headline_group = "Future"
             elif "Journey" in h:
                 headline_group = "Journey"
-        if random.random() < CLICK_PROBS.get(button_group):
+        if random.random() < CLICK_PROBS.get(moon_mars_group):
             await page.click("button")
             await page.wait_for_load_state('load')
         await page.close()
         await context.close()
-        return button_group, headline_group
+        return moon_mars_group, headline_group
 
 async def fetch_events():
     url = f"{BASE_URL}/events"
@@ -68,7 +69,6 @@ async def count_exp_visits_clicks(exp_name):
     events = await fetch_events()
     if events is None:
         return None, None
-    #todo: use pandas
     device_groups = {}
     for e in events:
         if e.get("event") == "exp_groups":
@@ -101,7 +101,6 @@ async def check_split_independence(exp1, exp2):
     events = await fetch_events()
     if events is None:
         return
-    #todo: use pandas
     device_groups = {}
     for e in events:
         if e.get("event") == "exp_groups":
@@ -126,23 +125,23 @@ async def main():
     args = parser.parse_args()
     N = args.num_visits
 
-    button_counts = Counter()
+    moon_mars_counts = Counter()
     headline_counts = Counter()
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         t = [simulate_visit(browser) for i in range(N)]
         results = await asyncio.gather(*t)
-        for button_group, headline_group in results:
-            button_counts[button_group] += 1
+        for moon_mars_group, headline_group in results:
+            moon_mars_counts[moon_mars_group] += 1
             if headline_group is not None:
                 headline_counts[headline_group] += 1
         await browser.close()
 
-    if button_counts:
-        print("Button Exp Split:")
-        for group in sorted(button_counts):
-            part = (button_counts[group] / N) * 100
-            print(f"Group {group}: {button_counts[group]} visits ({part:.2f}%)")
+    if moon_mars_counts:
+        print("Moon/Mars Exp Split:")
+        for group in sorted(moon_mars_counts):
+            part = (moon_mars_counts[group] / N) * 100
+            print(f"Group {group}: {moon_mars_counts[group]} visits ({part:.2f}%)")
         print("")
     if headline_counts:
         print("Headline Exp Split:")
@@ -151,11 +150,11 @@ async def main():
             print(f"Group {group}: {headline_counts[group]} visits ({part:.2f}%)")
         print("")
 
-    exp_name = "homepage_button_test"
+    exp_name = "moon_mars_test"
     visits, clicks = await count_exp_visits_clicks(exp_name)
     if visits is None:
         return
-    print("Button Exp events:")
+    print("Moon/Mars Exp events:")
     for group in sorted(visits | clicks):
         v, c = visits[group], clicks[group]
         ctr, ci = ctr_ci(v, c)
@@ -165,9 +164,9 @@ async def main():
     exps = await fetch_experiments()
     if exps is None or len(exps) == 1:
         return
-    button_split = exps.get("homepage_button_test", {}).get('groups')
-    total = sum(button_split.values())
-    normalized = {k: v / total for k, v in button_split.items()}
+    moon_mars_split = exps.get("moon_mars_test", {}).get('groups')
+    total = sum(moon_mars_split.values())
+    normalized = {k: v / total for k, v in moon_mars_split.items()}
 
     exp_name = "headline_test"
     visits, clicks = await count_exp_visits_clicks(exp_name)
@@ -179,7 +178,7 @@ async def main():
         print(f"Group {group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {expected_ctr*100:.2f}%")
     print("")
 
-    await check_split_independence("homepage_button_test", "headline_test")
+    await check_split_independence("moon_mars_test", "headline_test")
 
 if __name__ == "__main__":
     asyncio.run(main())

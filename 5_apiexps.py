@@ -10,9 +10,9 @@ INDEX_TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>A/B Test</h1>
     <div id="variant-container">Loading...</div>
 
     <script>
@@ -44,20 +44,26 @@ INDEX_TEMPLATE = """
 
         async function renderPage() {
             const experiments = await getExpGroups(deviceId);
-            const exp = experiments["homepage_button_test"];
+            const exp = experiments["moon_mars_test"];
             let group = exp.active && exp.group ? exp.group : exp.fallback;
             const container = document.getElementById("variant-container");
-            if (group === "A") {
+            if (group === "Moon") {
                 container.innerHTML = `
-                    <h3>Variant A</h3>
-                    <p>This is version A of the site.</p>
-                    <button onclick="sendEvent('button_click', { btn_type: 'A' })">Click A</button>
+                    <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
+                        <h1>Walk on the Moon</h1>
+                        <div class="vspacer"></div>
+                        <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
+                        <button onclick="sendEvent('button_click', { btn_type: 'Moon' })">Reserve Your Spot</button>
+                    </div>
                 `;
             } else {
                 container.innerHTML = `
-                    <h3>Variant B</h3>
-                    <p>This is version B of the site.</p>
-                    <button onclick="sendEvent('button_click', { btn_type: 'B' })">Click B</button>
+                    <div class="banner" style="background-image: url('{{ url_for('static', filename='./mars.jpg') }}');">
+                        <h1>Journey to Mars</h1>
+                        <div class="vspacer"></div>
+                        <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
+                        <button onclick="sendEvent('button_click', { btn_type: 'Mars' })">Reserve Your Spot</button>
+                    </div>
                 `;
             }
         }
@@ -91,10 +97,10 @@ def events():
         return jsonify(EVENTS)
 
 EXPERIMENTS = {
-    "homepage_button_test": {
+    "moon_mars_test": {
         "active": True,
-        "groups": {'A': 50, 'B': 50},
-        "fallback": "A"
+        "groups": {'Moon': 50, 'Mars': 50},
+        "fallback": "Moon"
     }
 }
 

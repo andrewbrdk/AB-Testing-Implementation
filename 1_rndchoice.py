@@ -11,7 +11,7 @@ TEMPLATE = '''
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    {% if variant == 'A' %}
+    {% if variant == 'Moon' %}
         <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
             <h1>Walk on the Moon</h1>
             <div class="vspacer"></div>
@@ -33,8 +33,8 @@ TEMPLATE = '''
 @app.route('/')
 def index():
     variant = request.cookies.get('variant')
-    if variant not in ['A', 'B']:
-        variant = random.choice(['A', 'B'])
+    if variant not in ['Moon', 'Mars']:
+        variant = random.choice(['Moon', 'Mars'])
     response = make_response(render_template_string(TEMPLATE, variant=variant))
     response.set_cookie('variant', variant, max_age=60*60*24*30)
     return response

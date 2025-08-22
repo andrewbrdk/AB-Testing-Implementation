@@ -9,29 +9,35 @@ TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>A/B Test</h1>
-    {% if variant == 'A' %}
-        <h3>Variant A</h3>
-        <p>This is version A of the site.</p>
-        <button onclick="console.log('Click A')">Click A</button>
+    {% if variant == 'Moon' %}
+        <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
+            <h1>Walk on the Moon</h1>
+            <div class="vspacer"></div>
+            <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
+            <button onclick="console.log('Click Moon')">Reserve Your Spot</button>
+        </div>
     {% else %}
-        <h3>Variant B</h3>
-        <p>This is version B of the site.</p>
-        <button onclick="console.log('Click B')">Click B</button>
+        <div class="banner" style="background-image: url('{{ url_for('static', filename='./mars.jpg') }}');">
+            <h1>Journey to Mars</h1>
+            <div class="vspacer"></div>
+            <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
+            <button onclick="console.log('Click Mars')">Reserve Your Spot</button>
+        </div>
     {% endif %}
 </body>
 </html>
 """
 
-EXPERIMENT_NAME = "homepage_button_test"
+EXPERIMENT_NAME = "moon_mars_test"
 
 def assign_group(device_id: str, experiment: str) -> str:
     key = f"{device_id}:{experiment}"
     hash_bytes = hashlib.sha256(key.encode()).digest()
     hash_int = int.from_bytes(hash_bytes, 'big')
-    return 'A' if hash_int % 2 == 0 else 'B'
+    return 'Moon' if hash_int % 2 == 0 else 'Mars'
 
 @app.route('/')
 def index():
