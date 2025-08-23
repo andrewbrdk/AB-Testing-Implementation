@@ -44,7 +44,7 @@ INDEX_TEMPLATE = """
 
         async function renderPage() {
             const experiments = await getExpGroups(deviceId);
-            const exp = experiments["moon_mars_test"];
+            const exp = experiments["moon_mars"];
             let group = exp.active && exp.group ? exp.group : exp.fallback;
             const container = document.getElementById("variant-container");
             if (group === "Moon") {
@@ -97,7 +97,7 @@ def events():
         return jsonify(EVENTS)
 
 EXPERIMENTS = {
-    "moon_mars_test": {
+    "moon_mars": {
         "active": True,
         "groups": {'Moon': 50, 'Mars': 50},
         "fallback": "Moon"

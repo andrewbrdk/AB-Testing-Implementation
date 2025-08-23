@@ -48,7 +48,7 @@ TEMPLATE = """
 </html>
 """
 
-EXPERIMENT_NAME = "moon_mars_test"
+EXPERIMENT_NAME = "moon_mars"
 
 def assign_group(device_id: str, experiment: str) -> str:
     key = f"{device_id}:{experiment}"
