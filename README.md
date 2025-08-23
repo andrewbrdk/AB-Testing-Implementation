@@ -44,7 +44,7 @@ python 1_rndchoice.py
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 <p align="center">
-  <img src="https://i.postimg.cc/q4qC6K2H/moonmars.png" alt="Moon, Mars" width="800" />
+  <img src="https://i.postimg.cc/qpgTV8Wq/moonmars-horiz.png" alt="Moon, Mars" width="800" />
 </p>
 
 ```python
@@ -476,9 +476,9 @@ INDEX_TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>A/B Test</h1>
     <div id="variant-container">Loading...</div>
 
     <script>
@@ -510,20 +510,25 @@ INDEX_TEMPLATE = """
 
         async function renderPage() {
             const experiments = await getExpGroups(deviceId);
-            const exp = experiments["homepage_button_test"];
-            let group = exp.active && exp.group ? exp.group : exp.fallback;
+            const exp = experiments["moon_mars"];
             const container = document.getElementById("variant-container");
-            if (group === "A") {
+            if (exp.group === "Moon") {
                 container.innerHTML = `
-                    <h3>Variant A</h3>
-                    <p>This is version A of the site.</p>
-                    <button onclick="sendEvent('button_click', { btn_type: 'A' })">Click A</button>
+                    <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
+                        <h1>Walk on the Moon</h1>
+                        <div class="vspacer"></div>
+                        <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
+                        <button onclick="sendEvent('button_click', { btn_type: 'Moon' })">Reserve Your Spot</button>
+                    </div>
                 `;
             } else {
                 container.innerHTML = `
-                    <h3>Variant B</h3>
-                    <p>This is version B of the site.</p>
-                    <button onclick="sendEvent('button_click', { btn_type: 'B' })">Click B</button>
+                    <div class="banner" style="background-image: url('{{ url_for('static', filename='./mars.jpg') }}');">
+                        <h1>Journey to Mars</h1>
+                        <div class="vspacer"></div>
+                        <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
+                        <button onclick="sendEvent('button_click', { btn_type: 'Mars' })">Reserve Your Spot</button>
+                    </div>
                 `;
             }
         }
@@ -557,10 +562,10 @@ def events():
         return jsonify(EVENTS)
 
 EXPERIMENTS = {
-    "homepage_button_test": {
+    "moon_mars": {
         "active": True,
-        "groups": {'A': 50, 'B': 50},
-        "fallback": "A"
+        "groups": {'Moon': 50, 'Mars': 50},
+        "fallback": "Moon"
     }
 }
 
@@ -577,7 +582,8 @@ def api_expgroups():
         result[exp_name] = {
             "active": info["active"],
             "fallback": info["fallback"],
-            "group": group,
+            "assigned": group,
+            "group": group if info["active"] else info["fallback"]
         }
     if device_id:
         post_event("exp_groups", device_id, result)
@@ -613,7 +619,7 @@ if __name__ == '__main__':
 ```
 
 * `async function getExpGroups(deviceId)` - fetches the experiment groups for a device.
-* `let group = exp.active && exp.group ? exp.group : exp.fallback;` - determines which variant to render.
+* `if (exp.group === "Moon") {` - determines which variant to render.
 * `EXPERIMENTS` - server-side storage for experiments.
 * `@app.route('/api/experiments')` - returns experiments info.
 * `@app.route('/api/expgroups')` - returns groups for a given `device_id`.
@@ -625,13 +631,13 @@ The split and conversions are correct.
 ```bash
 > python simulate_visits.py -n 1000
 
-Button Exp Split:
-Group A: 469 visits (46.90%)
-Group B: 531 visits (53.10%)
+Moon/Mars Exp Split:
+Mars: 489 visits (48.90%)
+Moon: 511 visits (51.10%)
 
-Button Exp events:
-Group A: 469 visits, 43 clicks, Conv=9.17 +- 2.67%, Exact: 10.00%
-Group B: 531 visits, 121 clicks, Conv=22.79 +- 3.64%, Exact: 20.00%
+Moon/Mars Exp events:
+Mars: 489 visits, 104 clicks, Conv=21.27 +- 3.70%, Exact: 20.00%
+Moon: 511 visits, 52 clicks, Conv=10.18 +- 2.67%, Exact: 10.00%
 ```
 
 
@@ -649,7 +655,7 @@ Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/e
 Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)
 
 <p align="center">
-  <img src="https://i.postimg.cc/tCPyGX23/multipleexps.png" alt="Multiple Exps" width="800" />
+  <img src="https://i.postimg.cc/c1C4CVry/multiple-exps.png" alt="Multiple Exps" width="800" />
 </p>
 
 ```python
@@ -665,10 +671,9 @@ INDEX_TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>A/B Test</h1>
-    <div id="headline-container"></div>
     <div id="variant-container">Loading...</div>
 
     <script>
@@ -700,29 +705,30 @@ INDEX_TEMPLATE = """
 
         async function renderPage() {
             const experiments = await getExpGroups(deviceId);
-            const exp = experiments["homepage_button_test"];
-            let group = exp.active && exp.group ? exp.group : exp.fallback;
+            let exp = experiments["moon_mars"];
+            let moon_mars_group = exp.group;
+            exp = experiments["white_gold_btn"];
+            let white_gold_group = exp.group;
             const container = document.getElementById("variant-container");
-            if (group === "A") {
+            let btn_cls = white_gold_group === "White" ? 'class="white"' : 'class="gold"';
+            if (moon_mars_group === "Moon") {
                 container.innerHTML = `
-                    <h3>Variant A</h3>
-                    <p>This is version A of the site.</p>
-                    <button onclick="sendEvent('button_click', { btn_type: 'A' })">Click A</button>
+                    <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
+                        <h1>Walk on the Moon</h1>
+                        <div class="vspacer"></div>
+                        <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
+                        <button ${btn_cls} onclick="sendEvent('button_click', { btn_type: 'Moon' })">Reserve Your Spot</button>
+                    </div>
                 `;
             } else {
                 container.innerHTML = `
-                    <h3>Variant B</h3>
-                    <p>This is version B of the site.</p>
-                    <button onclick="sendEvent('button_click', { btn_type: 'B' })">Click B</button>
+                    <div class="banner" style="background-image: url('{{ url_for('static', filename='./mars.jpg') }}');">
+                        <h1>Journey to Mars</h1>
+                        <div class="vspacer"></div>
+                        <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
+                        <button ${btn_cls} onclick="sendEvent('button_click', { btn_type: 'Mars' })">Reserve Your Spot</button>
+                    </div>
                 `;
-            }
-            const exp2 = experiments["headline_test"];
-            let group2 = exp2.active && exp2.group ? exp2.group : exp2.fallback;
-            const container2 = document.getElementById("headline-container");
-            if (group2 === "Future") {
-                container2.innerHTML = `<h2>Welcome to the Future!</h2>`;
-            } else {
-                container2.innerHTML = `<h2>Your Journey Starts Here!</h2>`;
             }
         }
 
@@ -755,15 +761,15 @@ def events():
         return jsonify(EVENTS)
 
 EXPERIMENTS = {
-    "homepage_button_test": {
+    "moon_mars": {
         "active": True,
-        "groups": {'A': 50, 'B': 50},
-        "fallback": "A"
+        "groups": {'Moon': 50, 'Mars': 50},
+        "fallback": "Moon"
     },
-    "headline_test": {
+    "white_gold_btn": {
         "active": True,
-        "groups": {'Future': 50, 'Journey': 50},
-        "fallback": "Future"
+        "groups": {'White': 50, 'Gold': 50},
+        "fallback": "White"
     }
 }
 
@@ -780,7 +786,8 @@ def api_expgroups():
         result[exp_name] = {
             "active": info["active"],
             "fallback": info["fallback"],
-            "group": group,
+            "assigned": group,
+            "group": group if info["active"] else info["fallback"]
         }
     if device_id:
         post_event("exp_groups", device_id, result)
@@ -815,16 +822,16 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
-* `<div id="headline-container"></div>` - second experiment container.
 * `async function getExpGroups(deviceId)` - fetches groups for both experiments.
-* `if (group2 === "Future") {` - renders a variant according to the group.
-* `"headline_test": {` - a config for the second experiment.
+* `let btn_cls = white_gold_group === "White" ?` - determines second experiment button class.
+* `<button ${btn_cls} onclick="sendEvent(` - sets class for the button according to the group.
+* `"white_gold_btn": {` - a config for the second experiment.
 
 On each visit, both experiments are assigned and `simulate_visits`
 confirms splits are close to expected.
-Click probability depends only on the first experiment `CLICK_PROBS = {'A': 0.1, 'B': 0.2}`,
+Click probability depends only on the first experiment `CLICK_PROBS = {'Moon': 0.1, 'Mars': 0.2}`,
 while the second has no effect.
-The second experiment conversions are expected to equal `CLICK_PROBS['A'] * share_A + CLICK_PROBS['B'] * share_B`
+The second experiment conversions are expected to equal `CLICK_PROBS['Moon'] * share_Moon + CLICK_PROBS['Mars'] * share_Mars`
 in both groups, and computed values are close to this.
 Split independence
 `P((exp1, group_i) and (exp2, group_j)) = P(exp1, group_i) * P(exp2, group_j)`
@@ -833,27 +840,27 @@ is also confirmed.
 ```bash
 > python simulate_visits.py -n 1000
 
-Button Exp Split:
-Group A: 527 visits (52.70%)
-Group B: 473 visits (47.30%)
+Moon/Mars Exp Split:
+Mars: 520 visits (52.00%)
+Moon: 480 visits (48.00%)
 
-Headline Exp Split:
-Group Future: 501 visits (50.10%)
-Group Journey: 499 visits (49.90%)
+White/Gold Exp Split:
+Gold: 520 visits (52.00%)
+White: 480 visits (48.00%)
 
-Button Exp events:
-Group A: 527 visits, 57 clicks, Conv=10.82 +- 2.71%, Exact: 10.00%
-Group B: 473 visits, 85 clicks, Conv=17.97 +- 3.53%, Exact: 20.00%
+Moon/Mars Exp events:
+Mars: 520 visits, 104 clicks, Conv=20.00 +- 3.51%, Exact: 20.00%
+Moon: 480 visits, 45 clicks, Conv=9.38 +- 2.66%, Exact: 10.00%
 
-Headline Exp events:
-Group Future: 501 visits, 74 clicks, Conv=14.77 +- 3.17%, Exact: 15.00%
-Group Journey: 499 visits, 68 clicks, Conv=13.63 +- 3.07%, Exact: 15.00%
+White/Gold Exp events:
+Gold: 520 visits, 80 clicks, Conv=15.38 +- 3.16%, Exact: 15.00%
+White: 480 visits, 69 clicks, Conv=14.37 +- 3.20%, Exact: 15.00%
 
-Split Independence homepage_button_test/headline_test:
-('A', 'Future'): 26.20%, independence 25.00%
-('A', 'Journey'): 26.50%, independence 25.00%
-('B', 'Future'): 23.90%, independence 25.00%
-('B', 'Journey'): 23.40%, independence 25.00%
+Split Independence moon_mars/white_gold_btn:
+('Mars', 'Gold'): 27.70%, independence 25.00%
+('Mars', 'White'): 24.30%, independence 25.00%
+('Moon', 'Gold'): 24.30%, independence 25.00%
+('Moon', 'White'): 23.70%, independence 25.00%
 ```
 
 
@@ -873,22 +880,22 @@ Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroup
 Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
 <p align="center">
-  <img src="https://i.postimg.cc/wTkfmZvK/expadmin.png" alt="Experiments Admin" width="800" />
+  <img src="https://i.postimg.cc/hDpTHWHH/experiments-admin.png" alt="Experiments Admin" width="800" />
 </p>
 
 ```python
 # ...
 
 EXPERIMENTS = {
-    "homepage_button_test": {
+    "moon_mars": {
         "active": True,
-        "groups": {'A': 50, 'B': 50},
-        "fallback": "A"
+        "groups": {'Moon': 50, 'Mars': 50},
+        "fallback": "Moon"
     },
-    "headline_test": {
+    "white_gold_btn": {
         "active": True,
-        "groups": {'Future': 50, 'Journey': 50},
-        "fallback": "Future"
+        "groups": {'White': 50, 'Gold': 50},
+        "fallback": "White"
     }
 }
 
@@ -966,7 +973,8 @@ def api_expgroups():
         result[exp_name] = {
             "active": info["active"],
             "fallback": info["fallback"],
-            "group": group,
+            "assigned": group,
+            "group": group if info["active"] else info["fallback"]
         }
     if device_id:
         post_event("exp_groups", device_id, result)
@@ -1010,27 +1018,27 @@ The splits and conversions are correct.
 ```bash
 > python simulate_visits.py -n 1000
 
-Button Exp Split:
-Group A: 474 visits (47.40%)
-Group B: 526 visits (52.60%)
+Moon/Mars Exp Split:
+Mars: 493 visits (49.30%)
+Moon: 507 visits (50.70%)
 
-Headline Exp Split:
-Group Future: 499 visits (49.90%)
-Group Journey: 501 visits (50.10%)
+White/Gold Exp Split:
+Gold: 514 visits (51.40%)
+White: 486 visits (48.60%)
 
-Button Exp events:
-Group A: 474 visits, 41 clicks, Conv=8.65 +- 2.58%, Exact: 10.00%
-Group B: 526 visits, 112 clicks, Conv=21.29 +- 3.57%, Exact: 20.00%
+Moon/Mars Exp events:
+Mars: 493 visits, 94 clicks, Conv=19.07 +- 3.54%, Exact: 20.00%
+Moon: 507 visits, 48 clicks, Conv=9.47 +- 2.60%, Exact: 10.00%
 
-Headline Exp events:
-Group Future: 499 visits, 79 clicks, Conv=15.83 +- 3.27%, Exact: 15.00%
-Group Journey: 501 visits, 74 clicks, Conv=14.77 +- 3.17%, Exact: 15.00%
+White/Gold Exp events:
+Gold: 514 visits, 74 clicks, Conv=14.40 +- 3.10%, Exact: 15.00%
+White: 486 visits, 68 clicks, Conv=13.99 +- 3.15%, Exact: 15.00%
 
-Split Independence homepage_button_test/headline_test:
-('A', 'Future'): 23.60%, independence 25.00%
-('A', 'Journey'): 23.80%, independence 25.00%
-('B', 'Future'): 26.30%, independence 25.00%
-('B', 'Journey'): 26.30%, independence 25.00%
+Split Independence moon_mars/white_gold_btn:
+('Mars', 'Gold'): 25.70%, independence 25.00%
+('Mars', 'White'): 23.60%, independence 25.00%
+('Moon', 'Gold'): 25.70%, independence 25.00%
+('Moon', 'White'): 25.00%, independence 25.00%
 ```
 
 #### Conclusion
@@ -1040,6 +1048,6 @@ event tracking, and experiment management have been presented.
 The examples provide insight into the inner workings of
 real-world experimentation systems.
 
-Image sources  
-&nbsp; &nbsp; `moon.jpg`: [NASA, Public domain, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Full_disc_of_the_moon_was_photographed_by_the_Apollo_17_crewmen.jpg)  
-&nbsp; &nbsp; `mars.jpg`: [NASA/JPL, Public domain, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Mars_Daily_Global_Image_from_April_1999.jpg)  
+Images:  
+`static/moon.jpg`: [NASA, Public domain, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Full_disc_of_the_moon_was_photographed_by_the_Apollo_17_crewmen.jpg)  
+`static/mars.jpg`: [NASA/JPL, Public domain, via Wikimedia Commons](https://commons.wikimedia.org/wiki/File:Mars_Daily_Global_Image_from_April_1999.jpg)  

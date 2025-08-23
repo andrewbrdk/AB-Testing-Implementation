@@ -45,9 +45,8 @@ INDEX_TEMPLATE = """
         async function renderPage() {
             const experiments = await getExpGroups(deviceId);
             const exp = experiments["moon_mars"];
-            let group = exp.group;
             const container = document.getElementById("variant-container");
-            if (group === "Moon") {
+            if (exp.group === "Moon") {
                 container.innerHTML = `
                     <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
                         <h1>Walk on the Moon</h1>
