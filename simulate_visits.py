@@ -22,27 +22,28 @@ async def simulate_visit(browser):
         await page.goto(BASE_URL)
         moon_mars_group = None
         await page.wait_for_selector("h1")
-        moon_mars_exp_h1 = await page.query_selector("h1")
-        if moon_mars_exp_h1:
-            h = await moon_mars_exp_h1.text_content()
+        moon_mars_h1 = await page.query_selector("h1")
+        if moon_mars_h1:
+            h = await moon_mars_h1.text_content()
             if "Moon" in h:
                 moon_mars_group = "Moon"
             elif "Mars" in h:
                 moon_mars_group = "Mars"
-        headline_group = None
-        headline_exp_h2 = await page.query_selector("#headline-container h2")
-        if headline_exp_h2:
-            h = await headline_exp_h2.text_content()
-            if "Future" in h:
-                headline_group = "Future"
-            elif "Journey" in h:
-                headline_group = "Journey"
+        white_gold_group = None
+        await page.wait_for_selector("button")
+        white_gold_btn = await page.query_selector("button")
+        if white_gold_btn:
+            classes = await white_gold_btn.get_attribute("class")
+            if classes is None:
+                white_gold_group = "White"
+            elif "gold" in classes.split():
+                white_gold_group = "Gold"
         if random.random() < CLICK_PROBS.get(moon_mars_group):
             await page.click("button")
             await page.wait_for_load_state('load')
         await page.close()
         await context.close()
-        return moon_mars_group, headline_group
+        return moon_mars_group, white_gold_group
 
 async def fetch_events():
     url = f"{BASE_URL}/events"
@@ -126,15 +127,15 @@ async def main():
     N = args.num_visits
 
     moon_mars_counts = Counter()
-    headline_counts = Counter()
+    white_gold_counts = Counter()
     async with async_playwright() as p:
         browser = await p.chromium.launch(headless=True)
         t = [simulate_visit(browser) for i in range(N)]
         results = await asyncio.gather(*t)
-        for moon_mars_group, headline_group in results:
+        for moon_mars_group, white_gold_group in results:
             moon_mars_counts[moon_mars_group] += 1
-            if headline_group is not None:
-                headline_counts[headline_group] += 1
+            if white_gold_group is not None:
+                white_gold_counts[white_gold_group] += 1
         await browser.close()
 
     if moon_mars_counts:
@@ -143,14 +144,14 @@ async def main():
             part = (moon_mars_counts[group] / N) * 100
             print(f"Group {group}: {moon_mars_counts[group]} visits ({part:.2f}%)")
         print("")
-    if headline_counts:
-        print("Headline Exp Split:")
-        for group in sorted(headline_counts):
-            part = (headline_counts[group] / N) * 100
-            print(f"Group {group}: {headline_counts[group]} visits ({part:.2f}%)")
+    if white_gold_counts:
+        print("White/Gold Exp Split:")
+        for group in sorted(white_gold_counts):
+            part = (white_gold_counts[group] / N) * 100
+            print(f"Group {group}: {white_gold_counts[group]} visits ({part:.2f}%)")
         print("")
 
-    exp_name = "moon_mars_test"
+    exp_name = "moon_mars"
     visits, clicks = await count_exp_visits_clicks(exp_name)
     if visits is None:
         return
@@ -164,13 +165,13 @@ async def main():
     exps = await fetch_experiments()
     if exps is None or len(exps) == 1:
         return
-    moon_mars_split = exps.get("moon_mars_test", {}).get('groups')
+    moon_mars_split = exps.get("moon_mars", {}).get('groups')
     total = sum(moon_mars_split.values())
     normalized = {k: v / total for k, v in moon_mars_split.items()}
 
-    exp_name = "headline_test"
+    exp_name = "white_gold_btn"
     visits, clicks = await count_exp_visits_clicks(exp_name)
-    print("Headline Exp events:")
+    print("White/Gold Exp events:")
     for group in sorted(visits | clicks):
         v, c = visits[group], clicks[group]
         ctr, ci = ctr_ci(v, c)
@@ -178,7 +179,7 @@ async def main():
         print(f"Group {group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {expected_ctr*100:.2f}%")
     print("")
 
-    await check_split_independence("moon_mars_test", "headline_test")
+    await check_split_independence("moon_mars", "white_gold_btn")
 
 if __name__ == "__main__":
     asyncio.run(main())

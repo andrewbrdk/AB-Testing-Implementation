@@ -13,7 +13,6 @@ INDEX_TEMPLATE = """
     <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <div id="headline-container"></div>
     <div id="variant-container">Loading...</div>
 
     <script>
@@ -45,16 +44,19 @@ INDEX_TEMPLATE = """
 
         async function renderPage() {
             const experiments = await getExpGroups(deviceId);
-            const exp = experiments["moon_mars_test"];
-            let group = exp.active && exp.group ? exp.group : exp.fallback;
+            let exp = experiments["moon_mars"];
+            let moon_mars_group = exp.active && exp.group ? exp.group : exp.fallback;
+            exp = experiments["white_gold_btn"];
+            let white_gold_group = exp.active && exp.group ? exp.group : exp.fallback;
             const container = document.getElementById("variant-container");
-            if (group === "Moon") {
+            let btn_cls = white_gold_group === "White" ? '' : 'class="gold"';
+            if (moon_mars_group === "Moon") {
                 container.innerHTML = `
                     <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
                         <h1>Walk on the Moon</h1>
                         <div class="vspacer"></div>
                         <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
-                        <button onclick="sendEvent('button_click', { btn_type: 'Moon' })">Reserve Your Spot</button>
+                        <button ${btn_cls} onclick="sendEvent('button_click', { btn_type: 'Moon' })">Reserve Your Spot</button>
                     </div>
                 `;
             } else {
@@ -63,17 +65,9 @@ INDEX_TEMPLATE = """
                         <h1>Journey to Mars</h1>
                         <div class="vspacer"></div>
                         <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
-                        <button onclick="sendEvent('button_click', { btn_type: 'Mars' })">Reserve Your Spot</button>
+                        <button ${btn_cls} onclick="sendEvent('button_click', { btn_type: 'Mars' })">Reserve Your Spot</button>
                     </div>
                 `;
-            }
-            const exp2 = experiments["headline_test"];
-            let group2 = exp2.active && exp2.group ? exp2.group : exp2.fallback;
-            const container2 = document.getElementById("headline-container");
-            if (group2 === "Future") {
-                container2.innerHTML = `<h2>Welcome to the Future!</h2>`;
-            } else {
-                container2.innerHTML = `<h2>Your Journey Starts Here!</h2>`;
             }
         }
 
@@ -106,15 +100,15 @@ def events():
         return jsonify(EVENTS)
 
 EXPERIMENTS = {
-    "moon_mars_test": {
+    "moon_mars": {
         "active": True,
         "groups": {'Moon': 50, 'Mars': 50},
         "fallback": "Moon"
     },
-    "headline_test": {
+    "white_gold_btn": {
         "active": True,
-        "groups": {'Future': 50, 'Journey': 50},
-        "fallback": "Future"
+        "groups": {'White': 50, 'Gold': 50},
+        "fallback": "White"
     }
 }
 
@@ -131,7 +125,7 @@ def api_expgroups():
         result[exp_name] = {
             "active": info["active"],
             "fallback": info["fallback"],
-            "group": group,
+            "group": group
         }
     if device_id:
         post_event("exp_groups", device_id, result)
