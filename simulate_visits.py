@@ -35,6 +35,8 @@ async def simulate_visit(browser):
         if white_gold_btn:
             classes = await white_gold_btn.get_attribute("class")
             if classes is None:
+                white_gold_group = None
+            elif "white" in classes.split():
                 white_gold_group = "White"
             elif "gold" in classes.split():
                 white_gold_group = "Gold"

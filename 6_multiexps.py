@@ -49,7 +49,7 @@ INDEX_TEMPLATE = """
             exp = experiments["white_gold_btn"];
             let white_gold_group = exp.active && exp.group ? exp.group : exp.fallback;
             const container = document.getElementById("variant-container");
-            let btn_cls = white_gold_group === "White" ? '' : 'class="gold"';
+            let btn_cls = white_gold_group === "White" ? 'class="white"' : 'class="gold"';
             if (moon_mars_group === "Moon") {
                 container.innerHTML = `
                     <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
