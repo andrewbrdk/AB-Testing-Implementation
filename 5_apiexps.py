@@ -45,7 +45,7 @@ INDEX_TEMPLATE = """
         async function renderPage() {
             const experiments = await getExpGroups(deviceId);
             const exp = experiments["moon_mars"];
-            let group = exp.active && exp.group ? exp.group : exp.fallback;
+            let group = exp.group;
             const container = document.getElementById("variant-container");
             if (group === "Moon") {
                 container.innerHTML = `
@@ -117,7 +117,8 @@ def api_expgroups():
         result[exp_name] = {
             "active": info["active"],
             "fallback": info["fallback"],
-            "group": group,
+            "assigned": group,
+            "group": group if info["active"] else info["fallback"]
         }
     if device_id:
         post_event("exp_groups", device_id, result)

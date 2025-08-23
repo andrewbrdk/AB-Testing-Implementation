@@ -45,9 +45,9 @@ INDEX_TEMPLATE = """
         async function renderPage() {
             const experiments = await getExpGroups(deviceId);
             let exp = experiments["moon_mars"];
-            let moon_mars_group = exp.active && exp.group ? exp.group : exp.fallback;
+            let moon_mars_group = exp.group;
             exp = experiments["white_gold_btn"];
-            let white_gold_group = exp.active && exp.group ? exp.group : exp.fallback;
+            let white_gold_group = exp.group;
             const container = document.getElementById("variant-container");
             let btn_cls = white_gold_group === "White" ? 'class="white"' : 'class="gold"';
             if (moon_mars_group === "Moon") {
@@ -186,7 +186,8 @@ def api_expgroups():
         result[exp_name] = {
             "active": info["active"],
             "fallback": info["fallback"],
-            "group": group,
+            "assigned": group,
+            "group": group if info["active"] else info["fallback"]
         }
     if device_id:
         post_event("exp_groups", device_id, result)

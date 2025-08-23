@@ -93,9 +93,11 @@ async def check_split_independence(exp1, exp2):
     exps = await fetch_experiments()
     if exps is None:
         return
-    exp1_split = exps.get(exp1, {}).get('groups')
+    exp1_active = exps.get(exp1, {}).get('active')
+    exp1_split = exps.get(exp1, {}).get('groups') if exp1_active else {exps.get(exp1, {}).get('fallback'): 1}
     exp1_split = {k: v / sum(exp1_split.values()) for k, v in exp1_split.items()}
-    exp2_split = exps.get(exp2, {}).get('groups')
+    exp2_active = exps.get(exp2, {}).get('active')
+    exp2_split = exps.get(exp2, {}).get('groups') if exp2_active else {exps.get(exp2, {}).get('fallback'): 1}
     exp2_split = {k: v / sum(exp2_split.values()) for k, v in exp2_split.items()}
     expected_split = {}
     for g1, s1 in exp1_split.items():
@@ -144,13 +146,13 @@ async def main():
         print("Moon/Mars Exp Split:")
         for group in sorted(moon_mars_counts):
             part = (moon_mars_counts[group] / N) * 100
-            print(f"Group {group}: {moon_mars_counts[group]} visits ({part:.2f}%)")
+            print(f"{group}: {moon_mars_counts[group]} visits ({part:.2f}%)")
         print("")
     if white_gold_counts:
         print("White/Gold Exp Split:")
         for group in sorted(white_gold_counts):
             part = (white_gold_counts[group] / N) * 100
-            print(f"Group {group}: {white_gold_counts[group]} visits ({part:.2f}%)")
+            print(f"{group}: {white_gold_counts[group]} visits ({part:.2f}%)")
         print("")
 
     exp_name = "moon_mars"
@@ -161,13 +163,14 @@ async def main():
     for group in sorted(visits | clicks):
         v, c = visits[group], clicks[group]
         ctr, ci = ctr_ci(v, c)
-        print(f"Group {group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {CLICK_PROBS.get(group)*100:.2f}%")
+        print(f"{group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {CLICK_PROBS.get(group)*100:.2f}%")
     print("")
 
     exps = await fetch_experiments()
     if exps is None or len(exps) == 1:
         return
-    moon_mars_split = exps.get("moon_mars", {}).get('groups')
+    moon_mars_active = exps.get("moon_mars", {}).get('active')
+    moon_mars_split = exps.get("moon_mars", {}).get('groups') if moon_mars_active else {exps.get("moon_mars", {}).get('fallback'): 1}
     total = sum(moon_mars_split.values())
     normalized = {k: v / total for k, v in moon_mars_split.items()}
 
@@ -178,7 +181,7 @@ async def main():
         v, c = visits[group], clicks[group]
         ctr, ci = ctr_ci(v, c)
         expected_ctr = sum([normalized[g] * CLICK_PROBS[g] for g in normalized.keys()])
-        print(f"Group {group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {expected_ctr*100:.2f}%")
+        print(f"{group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {expected_ctr*100:.2f}%")
     print("")
 
     await check_split_independence("moon_mars", "white_gold_btn")
