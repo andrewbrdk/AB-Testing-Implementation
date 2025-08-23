@@ -44,7 +44,7 @@ python 1_rndchoice.py
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 <p align="center">
-  <img src="https://i.postimg.cc/D0wHb05J/versions-ab.png" alt="Versions A,B" width="800" />
+  <img src="https://i.postimg.cc/q4qC6K2H/moonmars.png" alt="Moon, Mars" width="800" />
 </p>
 
 ```python
@@ -58,17 +58,23 @@ TEMPLATE = '''
 <html>
 <head>
     <title>A/B Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>A/B Test</h1>
-    {% if variant == 'A' %}
-        <h3>Variant A</h3>
-        <p>Welcome to version A of our site.</p>
-        <button onclick="console.log('Click A')">Click A</button>
+    {% if variant == 'Moon' %}
+        <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
+            <h1>Walk on the Moon</h1>
+            <div class="vspacer"></div>
+            <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
+            <button onclick="console.log('Click Moon')">Reserve Your Spot</button>
+        </div>
     {% else %}
-        <h3>Variant B</h3>
-        <p>Welcome to version B of our site.</p>
-        <button onclick="console.log('Click B')">Click B</button>
+        <div class="banner" style="background-image: url('{{ url_for('static', filename='./mars.jpg') }}');">
+            <h1>Journey to Mars</h1>
+            <div class="vspacer"></div>
+            <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
+            <button onclick="console.log('Click Mars')">Reserve Your Spot</button>
+        </div>
     {% endif %}
 </body>
 </html>
@@ -77,8 +83,8 @@ TEMPLATE = '''
 @app.route('/')
 def index():
     variant = request.cookies.get('variant')
-    if variant not in ['A', 'B']:
-        variant = random.choice(['A', 'B'])
+    if variant not in ['Moon', 'Mars']:
+        variant = random.choice(['Moon', 'Mars'])
     response = make_response(render_template_string(TEMPLATE, variant=variant))
     response.set_cookie('variant', variant, max_age=60*60*24*30)
     return response
@@ -87,16 +93,16 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
-* `{% if variant == 'A' %}` - the backend serves the variant corresponding to the experiment group
+* `{% if variant == 'Moon' %}` - the backend serves the variant corresponding to the experiment group.
 * `variant = request.cookies.get('variant')` - check for existing variant cookie.
-* `variant = random.choice(['A', 'B'])` - assign random variant if none.
+* `variant = random.choice(['Moon', 'Mars'])` - assign random variant if none.
 * `response.set_cookie('variant', variant, max_age=60*60*24*30)` - save variant in cookie for consistency.
 
 To view a different page variant, open the page in a new incognito window or 
 clear cookies and refresh the page.
 
 <p align="center">
-	<img src="https://i.postimg.cc/Hn81jj6Y/cookies.png" alt="Clean Cookies" width="800"/>
+	<img src="https://i.postimg.cc/R9Mt9yFF/clear-cookies.png" alt="Clear Cookies" width="800"/>
 </p>
 
 The `simulate_visits.py` script simulates page visits,
@@ -105,9 +111,9 @@ and the group split is close to the expected 50/50.
 ```bash
 > python simulate_visits.py -n 1000
 
-Button Exp Split:
-Group A: 488 visits (48.80%)
-Group B: 512 visits (51.20%)
+Moon/Mars Exp Split:
+Mars: 493 visits (49.30%)
+Moon: 507 visits (50.70%)
 ```
 
 #### 2. Hashing
@@ -134,29 +140,35 @@ TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>A/B Test</h1>
-    {% if variant == 'A' %}
-        <h3>Variant A</h3>
-        <p>This is version A of the site.</p>
-        <button onclick="console.log('Click A')">Click A</button>
+    {% if variant == 'Moon' %}
+        <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
+            <h1>Walk on the Moon</h1>
+            <div class="vspacer"></div>
+            <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
+            <button onclick="console.log('Click Moon')">Reserve Your Spot</button>
+        </div>
     {% else %}
-        <h3>Variant B</h3>
-        <p>This is version B of the site.</p>
-        <button onclick="console.log('Click B')">Click B</button>
+        <div class="banner" style="background-image: url('{{ url_for('static', filename='./mars.jpg') }}');">
+            <h1>Journey to Mars</h1>
+            <div class="vspacer"></div>
+            <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
+            <button onclick="console.log('Click Mars')">Reserve Your Spot</button>
+        </div>
     {% endif %}
 </body>
 </html>
 """
 
-EXPERIMENT_NAME = "homepage_button_test"
+EXPERIMENT_NAME = "moon_mars"
 
 def assign_group(device_id: str, experiment: str) -> str:
     key = f"{device_id}:{experiment}"
     hash_bytes = hashlib.sha256(key.encode()).digest()
     hash_int = int.from_bytes(hash_bytes, 'big')
-    return 'A' if hash_int % 2 == 0 else 'B'
+    return 'Moon' if hash_int % 2 == 0 else 'Mars'
 
 @app.route('/')
 def index():
@@ -182,9 +194,9 @@ The split between groups is uniform.
 ```bash
 > python simulate_visits.py -n 1000
 
-Button Exp Split:
-Group A: 492 visits (49.20%)
-Group B: 508 visits (50.80%)
+Moon/Mars Exp Split:
+Mars: 499 visits (49.90%)
+Moon: 501 visits (50.10%)
 ```
 
 #### 3. Frontend
@@ -211,9 +223,9 @@ TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>A/B Test</h1>
     <div id="variant-container">Loading...</div>
 
     <script>
@@ -226,17 +238,23 @@ TEMPLATE = """
         const expGroup = getCookie("exp_group");
         const container = document.getElementById("variant-container");
 
-        if (expGroup === "A") {
+        if (expGroup === "Moon") {
             container.innerHTML = `
-                <h3>Variant A</h3>
-                <p>This is version A of the site.</p>
-                <button onclick="console.log('Click A')">Click A</button>
+                <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
+                    <h1>Walk on the Moon</h1>
+                    <div class="vspacer"></div>
+                    <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
+                    <button onclick="console.log('Click Moon')">Reserve Your Spot</button>
+                </div>
             `;
         } else {
             container.innerHTML = `
-                <h3>Variant B</h3>
-                <p>This is version B of the site.</p>
-                <button onclick="console.log('Click B')">Click B</button>
+                <div class="banner" style="background-image: url('{{ url_for('static', filename='./mars.jpg') }}');">
+                    <h1>Journey to Mars</h1>
+                    <div class="vspacer"></div>
+                    <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
+                    <button onclick="console.log('Click Mars')">Reserve Your Spot</button>
+                </div>
             `;
         }
     </script>
@@ -244,13 +262,13 @@ TEMPLATE = """
 </html>
 """
 
-EXPERIMENT_NAME = "homepage_button_test"
+EXPERIMENT_NAME = "moon_mars"
 
 def assign_group(device_id: str, experiment: str) -> str:
     key = f"{device_id}:{experiment}"
     hash_bytes = hashlib.sha256(key.encode()).digest()
     hash_int = int.from_bytes(hash_bytes, 'big')
-    return 'A' if hash_int % 2 == 0 else 'B'
+    return 'Moon' if hash_int % 2 == 0 else 'Mars'
 
 @app.route('/')
 def index():
@@ -269,16 +287,16 @@ if __name__ == '__main__':
 
 * `<div id="variant-container">Loading...</div>` - placeholder for experiment content.
 * `const expGroup = getCookie("exp_group");` - reads the assigned group from cookies.
-* `if (expGroup === "A") { container.innerHTML =` - replaces the placeholder with the variant corresponding to the user’s group.
+* `if (expGroup === "Moon") { container.innerHTML =` - replaces the placeholder with the variant corresponding to the user’s group.
 
 The split is correct.
 
 ```bash
 > python simulate_visits.py -n 1000
 
-Button Exp Split:
-Group A: 492 visits (49.20%)
-Group B: 508 visits (50.80%)
+Moon/Mars Exp Split:
+Mars: 511 visits (51.10%)
+Moon: 489 visits (48.90%)
 ```
 
 #### 4. Events
@@ -297,7 +315,7 @@ Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
 
 <p align="center">
-  <img src="https://i.postimg.cc/L6V9gQSG/events.png" alt="Events" width="800" />
+  <img src="https://i.postimg.cc/nZ0DL2j1/events.png" alt="Events" width="800" />
 </p>
 
 ```python
@@ -312,9 +330,9 @@ TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
 </head>
 <body>
-    <h1>A/B Test</h1>
     <div id="variant-container">Loading...</div>
 
     <script>
@@ -344,17 +362,23 @@ TEMPLATE = """
         const expGroup = getCookie("exp_group");
         const container = document.getElementById("variant-container");
 
-        if (expGroup === "A") {
+        if (expGroup === "Moon") {
             container.innerHTML = `
-                <h3>Variant A</h3>
-                <p>This is version A of the site.</p>
-                <button onclick="sendEvent('button_click', { btn_type: 'A' })">Click A</button>
+                <div class="banner" style="background-image: url('{{ url_for('static', filename='./moon.jpg') }}');">
+                    <h1>Walk on the Moon</h1>
+                    <div class="vspacer"></div>
+                    <p>Be one of the first tourists to set foot on the lunar surface. Your journey to another world starts here.</p>
+                    <button onclick="sendEvent('button_click', { btn_type: 'Moon' })">Reserve Your Spot</button>
+                </div>
             `;
         } else {
             container.innerHTML = `
-                <h3>Variant B</h3>
-                <p>This is version B of the site.</p>
-                <button onclick="sendEvent('button_click', { btn_type: 'B' })">Click B</button>
+                <div class="banner" style="background-image: url('{{ url_for('static', filename='./mars.jpg') }}');">
+                    <h1>Journey to Mars</h1>
+                    <div class="vspacer"></div>
+                    <p>Be among the first humans to set foot on the Red Planet. Experience the adventure of a lifetime.</p>
+                    <button onclick="sendEvent('button_click', { btn_type: 'Mars' })">Reserve Your Spot</button>
+                </div>
             `;
         }
 
@@ -364,13 +388,13 @@ TEMPLATE = """
 </html>
 """
 
-EXPERIMENT_NAME = "homepage_button_test"
+EXPERIMENT_NAME = "moon_mars"
 
 def assign_group(device_id: str, experiment: str) -> str:
     key = f"{device_id}:{experiment}"
     hash_bytes = hashlib.sha256(key.encode()).digest()
     hash_int = int.from_bytes(hash_bytes, 'big')
-    return 'A' if hash_int % 2 == 0 else 'B'
+    return 'Moon' if hash_int % 2 == 0 else 'Mars'
 
 @app.route('/')
 def index():
@@ -399,27 +423,27 @@ if __name__ == '__main__':
 ```
 
 * `async function sendEvent(eventName, params = {})` - sends analytical events.
-* `<button onclick="sendEvent('button_click', { btn_type: 'A' })">` - logs a group A `button_click` event.
+* `<button onclick="sendEvent('button_click', { btn_type: 'Moon' })">` - logs a `button_click` event.
 * `sendEvent("pageview", {});` - logs a `pageview` event.
 * `EVENTS = []` - events are stored in the `EVENTS` variable on the server.
 * `@app.route('/events', methods=['GET', 'POST'])` - server endpoint for collecting events.
 
 In `simulate_visits.py`, page visits and button clicks are imitated.
 Button click probabilities differ
-between groups `CLICK_PROBS = {'A': 0.1, 'B': 0.2}`.
+between groups `CLICK_PROBS = {'Moon': 0.1, 'Mars': 0.2}`.
 Each visit and click generates analytical events.
 Conversions measured from these events are compared to the `CLICK_PROBS` values.
 
 ```bash
 > python simulate_visits.py -n 1000
 
-Button Exp Split:
-Group A: 479 visits (47.90%)
-Group B: 521 visits (52.10%)
+Moon/Mars Exp Split:
+Mars: 488 visits (48.80%)
+Moon: 512 visits (51.20%)
 
-Button Exp events:
-Group A: 479 visits, 37 clicks, Conv=7.72 +- 2.44%, Exact: 10.00%
-Group B: 521 visits, 119 clicks, Conv=22.84 +- 3.68%, Exact: 20.00%
+Moon/Mars Exp events:
+Mars: 488 visits, 92 clicks, Conv=18.85 +- 3.54%, Exact: 20.00%
+Moon: 512 visits, 47 clicks, Conv=9.18 +- 2.55%, Exact: 10.00%
 ```
 
 
