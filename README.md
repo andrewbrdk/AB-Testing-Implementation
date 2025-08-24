@@ -1,5 +1,9 @@
 # Web A/B Testing Demo
 
+<p align="center">
+  <img src="https://i.postimg.cc/WsLGBwhw/samepage.png" alt="Moon, Mars" width="800" />
+</p>
+
 *A series of web A/B tests examples, demonstrating random group assignment, 
 hashing, backend and frontend experiment logic, event tracking, multiple experiments, 
 and an experiments admin page.*
@@ -35,7 +39,7 @@ so switching devices may occasionally show a different variant.
 
 #### 1. Random
 
-The experiment group is generated on the backend using a `random.choice(['A', 'B'])` call.
+The experiment group is generated on the backend using a `random.choice` call.
 The group is stored in cookies to ensure a consistent variant on each request.
 
 ```bash
@@ -44,7 +48,7 @@ python 1_rndchoice.py
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 <p align="center">
-  <img src="https://i.postimg.cc/qpgTV8Wq/moonmars-horiz.png" alt="Moon, Mars" width="800" />
+  <img src="https://i.postimg.cc/rcMvk5tc/moonmars-horiz-4.png" alt="Page variants" width="800" />
 </p>
 
 ```python
@@ -93,7 +97,7 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
-* `{% if variant == 'Moon' %}` - the backend serves the variant corresponding to the experiment group.
+* `{% if variant == 'Moon' %} ... {% endif %}` - the backend serves the variant corresponding to the experiment group.
 * `variant = request.cookies.get('variant')` - check for existing variant cookie.
 * `variant = random.choice(['Moon', 'Mars'])` - assign random variant if none.
 * `response.set_cookie('variant', variant, max_age=60*60*24*30)` - save variant in cookie for consistency.
@@ -186,7 +190,7 @@ if __name__ == '__main__':
 
 * `device_id = str(uuid.uuid4())` - generate a unique ID for new visitors.
 * `variant = assign_group(device_id, EXPERIMENT_NAME)` - determine experiment group.
-* `key = f"{device_id}:{experiment}"` - compute group as `hash(device_id || experiment_name) % 2`.
+* `key = f"{device_id}:{experiment}"` - concatenate ID and experiment name to compute group.
 * `response.set_cookie("device_id", device_id, max_age=60*60*24*365)` - store `device_id` in cookies.
 
 The split between groups is uniform.
@@ -287,7 +291,7 @@ if __name__ == '__main__':
 
 * `<div id="variant-container">Loading...</div>` - placeholder for experiment content.
 * `const expGroup = getCookie("exp_group");` - reads the assigned group from cookies.
-* `if (expGroup === "Moon") { container.innerHTML =` - replaces the placeholder with the variant corresponding to the user’s group.
+* `if (expGroup === "Moon") { container.innerHTML = ... }` - replaces the placeholder with the variant corresponding to the user’s group.
 
 The split is correct.
 
@@ -619,7 +623,7 @@ if __name__ == '__main__':
 ```
 
 * `async function getExpGroups(deviceId)` - fetches the experiment groups for a device.
-* `if (exp.group === "Moon") {` - determines which variant to render.
+* `if (exp.group === "Moon") { ... }` - determines which variant to render.
 * `EXPERIMENTS` - server-side storage for experiments.
 * `@app.route('/api/experiments')` - returns experiments info.
 * `@app.route('/api/expgroups')` - returns groups for a given `device_id`.
@@ -659,12 +663,7 @@ Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroup
 </p>
 
 ```python
-from flask import Flask, request, make_response, render_template_string, jsonify
-import uuid
-import hashlib
-from datetime import datetime
-
-app = Flask(__name__)
+# ...
 
 INDEX_TEMPLATE = """
 <!DOCTYPE html>
@@ -677,30 +676,11 @@ INDEX_TEMPLATE = """
     <div id="variant-container">Loading...</div>
 
     <script>
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
+        /* ... */
 
         async function getExpGroups(deviceId) {
             const res = await fetch(`/api/expgroups?device_id=${deviceId}`);
             return await res.json();
-        }
-
-        async function sendEvent(eventName, params = {}) {
-            let ts = new Date().toISOString();
-            await fetch('/events', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ts: ts,
-                    deviceId: deviceId,
-                    source: 'client',
-                    event: eventName,
-                    params: params
-                })
-            });
         }
 
         async function renderPage() {
@@ -732,33 +712,13 @@ INDEX_TEMPLATE = """
             }
         }
 
-        const deviceId = getCookie("device_id");
-        sendEvent("pageview", {});
-        renderPage();
+        /* ... */
     </script>
 </body>
 </html>
 """
 
-@app.route('/')
-def index():
-    device_id = request.cookies.get("device_id")
-    if not device_id:
-        device_id = str(uuid.uuid4())
-    response = make_response(render_template_string(INDEX_TEMPLATE))
-    response.set_cookie("device_id", device_id, max_age=60*60*24*365)
-    return response
-
-EVENTS = []
-
-@app.route('/events', methods=['GET', 'POST'])
-def events():
-    if request.method == 'POST':
-        data = request.json
-        EVENTS.append(data)
-        return jsonify({"status": "ok"})
-    else:
-        return jsonify(EVENTS)
+# ...
 
 EXPERIMENTS = {
     "moon_mars": {
@@ -772,10 +732,6 @@ EXPERIMENTS = {
         "fallback": "White"
     }
 }
-
-@app.route('/api/experiments')
-def api_experiments():
-    return jsonify(EXPERIMENTS)
 
 @app.route('/api/expgroups')
 def api_expgroups():
@@ -807,25 +763,13 @@ def assign_group(device_id: str, experiment: str) -> str:
             return group_name
     return None
 
-def post_event(event_name: str, device_id: str, params: dict):
-    payload = {
-        "ts": datetime.utcnow().isoformat(),
-        "deviceId": device_id,
-        "source": 'backend',
-        "event": event_name,
-        "params": params
-    }
-    with app.test_request_context("/events", method="POST", json=payload):
-        return events()
-
-if __name__ == '__main__':
-    app.run(debug=True)
+# ...
 ```
 
 * `async function getExpGroups(deviceId)` - fetches groups for both experiments.
-* `let btn_cls = white_gold_group === "White" ?` - determines second experiment button class.
-* `<button ${btn_cls} onclick="sendEvent(` - sets class for the button according to the group.
-* `"white_gold_btn": {` - a config for the second experiment.
+* `let btn_cls = white_gold_group === "White" ? 'class="white"' : 'class="gold"';` - determines second experiment button class.
+* `<button ${btn_cls} onclick="sendEvent(...)">...</button>` - sets class for the button according to the group.
+* `EXPERIMENTS = {..., "white_gold_btn": {"groups": {'White': 50, 'Gold': 50}, ...}` - a config for the second experiment.
 
 On each visit, both experiments are assigned and `simulate_visits`
 confirms splits are close to expected.
@@ -960,50 +904,7 @@ def experiments_toggle():
         EXPERIMENTS[experiment]['active'] = not EXPERIMENTS[experiment]['active']
     return '', 302, {'Location': '/experiments'}
 
-@app.route('/api/experiments')
-def api_experiments():
-    return jsonify(EXPERIMENTS)
-
-@app.route('/api/expgroups')
-def api_expgroups():
-    device_id = request.args.get("device_id")
-    result = {}
-    for exp_name, info in EXPERIMENTS.items():
-        group = assign_group(device_id, exp_name) if device_id else ""
-        result[exp_name] = {
-            "active": info["active"],
-            "fallback": info["fallback"],
-            "assigned": group,
-            "group": group if info["active"] else info["fallback"]
-        }
-    if device_id:
-        post_event("exp_groups", device_id, result)
-    return jsonify(result)
-
-def assign_group(device_id: str, experiment: str) -> str:
-    groups = EXPERIMENTS[experiment]["groups"]
-    total_parts = sum(groups.values())
-    key = f"{device_id}:{experiment}"
-    hash_bytes = hashlib.sha256(key.encode()).digest()
-    hash_int = int.from_bytes(hash_bytes, 'big')
-    hash_mod = hash_int % total_parts
-    c = 0
-    for group_name, split in sorted(groups.items()):
-        c += split
-        if hash_mod < c:
-            return group_name
-    return None
-
-def post_event(event_name: str, device_id: str, params: dict):
-    payload = {
-        "ts": datetime.utcnow().isoformat(),
-        "deviceId": device_id,
-        "source": 'backend',
-        "event": event_name,
-        "params": params
-    }
-    with app.test_request_context("/events", method="POST", json=payload):
-        return events()
+# ...
 
 if __name__ == '__main__':
     app.run(debug=True)
