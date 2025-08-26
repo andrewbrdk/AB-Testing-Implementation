@@ -101,66 +101,147 @@ def events():
 
 EXPERIMENTS = {
     "moon_mars": {
-        "active": True,
+        "title": "Moon/Mars",
         "groups": {'Moon': 50, 'Mars': 50},
-        "fallback": "Moon"
+        "fallback": "Moon",
+        "status": "active"
     },
     "white_gold_btn": {
-        "active": True,
+        "title": "White/Gold",
         "groups": {'White': 50, 'Gold': 50},
-        "fallback": "White"
+        "fallback": "White",
+        "status": "active"
     }
 }
 
-ASSIGNMENTS = {}
+USERGROUPS = {}
 
 EXPERIMENTS_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
     <title>Experiments</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='experiments.css') }}">
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+        th, td {
+            text-align: left;
+            padding: 10px;
+            vertical-align: top;
+        }
+        .split-row {
+            display: flex;
+            justify-content: space-between;
+            gap: 8px;
+            padding: 4px;
+            align-items: center;
+        }
+        .split-row input {
+            width: 80px;
+            text-align: right;
+            border: none;
+            border-bottom: 1px solid black;
+            outline: none;
+        }
+        .hidden {
+            display: none;
+        }
+    </style>
 </head>
 <body>
     <h1>Experiments</h1>
-    <table class="experiments">
-        <thead>
-            <tr>
-                <th>Experiment</th>
-                <th>Active</th>
-                <th>Groups: split</th>
-                <th>Fallback</th>
-                <th>Toggle</th>
-            </tr>
-        </thead>
-        <tbody>
-        {% for name, exp in experiments.items() %}
-            <tr>
-                <td>{{ name }}</td>
-                <td>{{ 'On' if exp.active else 'Off' }}</td>
-                <td>
-                    <form method="POST" action="/experiments/update" class="split-form" autocomplete="off">
-                        <input type="hidden" name="experiment" value="{{ name }}">
-                        {% for g, split in exp.groups.items() %}
-                        <div class="split-row">
-                            <label>{{ g }}:</label>
-                            <input type="number" name="{{ g }}" value="{{ split }}" min="0">
-                        </div>
-                        {% endfor %}
-                        <button type="submit">Update</button>
-                    </form>
-                </td>
-                <td>{{ exp.fallback }}</td>
-                <td>
-                    <form method="POST" action="/experiments/toggle">
-                        <input type="hidden" name="experiment" value="{{ name }}">
-                        <button type="submit">{{ 'Turn Off' if exp.active else 'Turn On' }}</button>
-                    </form>
-                </td>
-            </tr>
-        {% endfor %}
-        </tbody>
-    </table>
+    <div id="experiments">Loading...</div>
+
+    <script>
+        async function fetchExperiments() {
+            const res = await fetch('/api/experiments');
+            return await res.json();
+        }
+
+        function renderExperiments(experiments) {
+            const table = document.createElement('table');
+            table.classList.add("experiments");
+            table.innerHTML += `
+                <tr>
+                    <th>Experiment</th>
+                    <th>Groups: Split</th>
+                    <th>Fallback</th>
+                    <th>State</th>
+                    <th></th>
+                </tr>`;
+
+            for (const [name, exp] of Object.entries(experiments)) {
+                const row = document.createElement('tr');
+                row.id = "row-" + name;
+                row.innerHTML = `<td>${exp.title}</td>`;
+                let groups = "";
+                for (const [g, split] of Object.entries(exp.groups)) {
+                    groups += `<div class="split-row">${g}: ${split}</div>`;
+                }
+                row.innerHTML += `<td>${groups}</td>`;
+                row.innerHTML += `
+                    <td>${exp.fallback}</td>
+                    <td>${exp.status}</td>
+                    <td>
+                        <button type="button" onclick="showEditRow('${name}')">Edit</button>
+                    </td>`;
+                table.appendChild(row);
+
+                const editRow = document.createElement('tr');
+                editRow.id = "edit-" + name;
+                editRow.classList.add("hidden");
+                editRow.style.background = "#f9f9f9";
+                editRow.innerHTML = `<td>${exp.title}</td>`
+                groups = "";
+                for (const [g, split] of Object.entries(exp.groups)) {
+                    groups += `<div class="split-row">
+                        <span class="groupname">${g}</span>:
+                        <input type="number" name="group_split" value="${split}" style="width:60px;">
+                    </div>`;
+                }
+                editRow.innerHTML += `<td>${groups}</td>`
+                editRow.innerHTML += `<td>${exp.fallback}</td>
+                    <td>${exp.status}</td>
+                    <td>
+                        <button type="button" onclick="hideEditRow('${name}')">Cancel</button>
+                        <button type="button" onclick="saveExperiment('${name}')">Save</button>
+                    </td>
+                `;
+                table.appendChild(editRow);
+            };
+
+            const container = document.getElementById('experiments');
+            container.innerHTML = "";
+            container.appendChild(table);
+        }
+
+        function showEditRow(name) {
+            document.getElementById("row-" + name).style.display = "none";
+            document.getElementById("edit-" + name).classList.remove("hidden");
+        }
+
+        function hideEditRow(name) {
+            document.getElementById("edit-" + name).classList.add("hidden");
+            document.getElementById("row-" + name).style.display = "";
+        }
+
+        function saveExperiment(name) {
+            const editRow = document.getElementById("edit-" + name);
+            const groupNames = [...editRow.querySelectorAll('span.groupname')].map(i => i.textContent);
+            const groupSplits = [...editRow.querySelectorAll('input[name="group_split"]')].map(i => parseInt(i.value));
+            const groups = {};
+            groupNames.forEach((g, i) => groups[g] = groupSplits[i]);
+
+            fetch(`/api/experiments/update`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ name, groups })
+            }).then(() => location.reload());
+        }
+
+        fetchExperiments().then(renderExperiments);
+    </script>
 </body>
 </html>
 """
@@ -168,13 +249,6 @@ EXPERIMENTS_TEMPLATE = """
 @app.route('/experiments', methods=['GET'])
 def experiments_page():
     return render_template_string(EXPERIMENTS_TEMPLATE, experiments=EXPERIMENTS)
-
-@app.route('/experiments/toggle', methods=['POST'])
-def experiments_toggle():
-    experiment = request.form.get('experiment')
-    if experiment in EXPERIMENTS:
-        EXPERIMENTS[experiment]['active'] = not EXPERIMENTS[experiment]['active']
-    return '', 302, {'Location': '/experiments'}
 
 @app.route('/api/experiments')
 def api_experiments():
@@ -187,48 +261,52 @@ def api_expgroups():
     for exp_name, info in EXPERIMENTS.items():
         group = assign_group(device_id, exp_name) if device_id else ""
         result[exp_name] = {
-            "active": info["active"],
+            "status": info["status"],
             "fallback": info["fallback"],
-            "assigned": group,
-            "group": group if info["active"] else info["fallback"]
+            "group": group
         }
     if device_id:
         post_event("exp_groups", device_id, result)
     return jsonify(result)
 
-@app.route('/experiments/update', methods=['POST'])
-def experiments_update():
-    experiment = request.form.get("experiment")
-    if experiment in EXPERIMENTS:
-        new_groups = {}
-        for g in EXPERIMENTS[experiment]["groups"].keys():
-            val = request.form.get(g)
-            try:
-                new_groups[g] = int(val)
-            except:
-                new_groups[g] = EXPERIMENTS[experiment]["groups"][g]  # keep old if invalid
-        EXPERIMENTS[experiment]["groups"] = new_groups
-    return '', 302, {'Location': '/experiments'}
+@app.route('/api/experiments/update', methods=['POST'])
+def update_experiment():
+    data = request.json
+    name = data.get("name")
+    if not name or name not in EXPERIMENTS:
+        return jsonify({"error": "Experiment not found"}), 404
+    old_groups = set(EXPERIMENTS[name]["groups"].keys())
+    new_groups = set(data.get("groups", {}).keys())
+    if old_groups != new_groups:
+        return jsonify({
+            "error": "Groups do not match existing experiment definition",
+            "expected": list(old_groups),
+            "got": list(new_groups)
+        }), 400
+    for g in old_groups:
+        EXPERIMENTS[name]["groups"][g] = data["groups"][g]
+    return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
 
 def assign_group(device_id: str, experiment: str) -> str:
-    if device_id in ASSIGNMENTS and experiment in ASSIGNMENTS[device_id]:
-        return ASSIGNMENTS[device_id][experiment]
+    if device_id in USERGROUPS and experiment in USERGROUPS[device_id]:
+        return USERGROUPS[device_id][experiment]
     groups = EXPERIMENTS[experiment]["groups"]
     total_parts = sum(groups.values())
-    if total_parts == 0:
-        return EXPERIMENTS[experiment]["fallback"]
     key = f"{device_id}:{experiment}"
     hash_bytes = hashlib.sha256(key.encode()).digest()
     hash_int = int.from_bytes(hash_bytes, 'big')
     hash_mod = hash_int % total_parts
     c = 0
+    chosen = EXPERIMENTS[experiment]["fallback"]
     for group_name, split in sorted(groups.items()):
         c += split
         if hash_mod < c:
             chosen = group_name
-            ASSIGNMENTS.setdefault(device_id, {})[experiment] = chosen
-            return chosen
-    return EXPERIMENTS[experiment]["fallback"]
+            break
+    if device_id not in USERGROUPS:
+        USERGROUPS[device_id] = {}
+    USERGROUPS[device_id][experiment] = chosen
+    return chosen
 
 def post_event(event_name: str, device_id: str, params: dict):
     payload = {

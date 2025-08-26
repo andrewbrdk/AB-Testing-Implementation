@@ -101,14 +101,16 @@ def events():
 
 EXPERIMENTS = {
     "moon_mars": {
-        "active": True,
+        "title": "Moon/Mars",
         "groups": {'Moon': 50, 'Mars': 50},
-        "fallback": "Moon"
+        "fallback": "Moon",
+        "state": "active"
     },
     "white_gold_btn": {
-        "active": True,
+        "title": "White/Gold",
         "groups": {'White': 50, 'Gold': 50},
-        "fallback": "White"
+        "fallback": "White",
+        "state": "active"
     }
 }
 
@@ -116,7 +118,7 @@ EXPERIMENTS_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Experiments Control</title>
+    <title>Experiments</title>
     <style>
         th, td {
             text-align: left;
@@ -131,33 +133,28 @@ EXPERIMENTS_TEMPLATE = """
         <thead>
             <tr>
                 <th>Experiment</th>
-                <th>Active</th>
-                <th>Groups: split</th>
+                <th>Groups: Split</th>
                 <th>Fallback</th>
-                <th>Toggle</th>
+                <th>State</th>
             </tr>
         </thead>
         <tbody>
         {% for name, exp in experiments.items() %}
             <tr>
-                <td>{{ name }}</td>
-                <td>{{ 'On' if exp.active else 'Off' }}</td>
+                <td>{{ exp.title }}</td>
                 <td>
                     {% for g, split in exp.groups.items() %}
                         {{ g }}: {{ split }} <br>
                     {% endfor %}
                 </td>
                 <td>{{ exp.fallback }}</td>
-                <td>
-                    <form method="POST" action="/experiments/toggle">
-                        <input type="hidden" name="experiment" value="{{ name }}">
-                        <button type="submit">{{ 'Turn Off' if exp.active else 'Turn On' }}</button>
-                    </form>
-                </td>
+                <td>{{ exp.state }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+</body>
+</html>
 </body>
 </html>
 """
@@ -165,13 +162,6 @@ EXPERIMENTS_TEMPLATE = """
 @app.route('/experiments', methods=['GET'])
 def experiments_page():
     return render_template_string(EXPERIMENTS_TEMPLATE, experiments=EXPERIMENTS)
-
-@app.route('/experiments/toggle', methods=['POST'])
-def experiments_toggle():
-    experiment = request.form.get('experiment')
-    if experiment in EXPERIMENTS:
-        EXPERIMENTS[experiment]['active'] = not EXPERIMENTS[experiment]['active']
-    return '', 302, {'Location': '/experiments'}
 
 @app.route('/api/experiments')
 def api_experiments():
@@ -184,10 +174,9 @@ def api_expgroups():
     for exp_name, info in EXPERIMENTS.items():
         group = assign_group(device_id, exp_name) if device_id else ""
         result[exp_name] = {
-            "active": info["active"],
+            "state": info["state"],
             "fallback": info["fallback"],
-            "assigned": group,
-            "group": group if info["active"] else info["fallback"]
+            "group": group
         }
     if device_id:
         post_event("exp_groups", device_id, result)
