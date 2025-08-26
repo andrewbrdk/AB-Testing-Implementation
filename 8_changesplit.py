@@ -138,7 +138,7 @@ EXPERIMENTS_TEMPLATE = """
             align-items: center;
         }
         .split-row input {
-            width: 80px;
+            width: 60px;
             text-align: right;
             border: none;
             border-bottom: 1px solid black;
@@ -197,7 +197,7 @@ EXPERIMENTS_TEMPLATE = """
                 for (const [g, split] of Object.entries(exp.groups)) {
                     groups += `<div class="split-row">
                         <span class="groupname">${g}</span>:
-                        <input type="number" name="group_split" value="${split}" style="width:60px;">
+                        <input type="number" name="group_split" value="${split}">
                     </div>`;
                 }
                 editRow.innerHTML += `<td>${groups}</td>`
