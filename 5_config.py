@@ -97,9 +97,9 @@ def events():
 
 EXPERIMENTS = {
     "moon_mars": {
-        "active": True,
         "groups": {'Moon': 50, 'Mars': 50},
-        "fallback": "Moon"
+        "fallback": "Moon",
+        "state": "active",
     }
 }
 
@@ -114,10 +114,9 @@ def api_expgroups():
     for exp_name, info in EXPERIMENTS.items():
         group = assign_group(device_id, exp_name) if device_id else ""
         result[exp_name] = {
-            "active": info["active"],
+            "state": info["state"],
             "fallback": info["fallback"],
-            "assigned": group,
-            "group": group if info["active"] else info["fallback"]
+            "group": group
         }
     if device_id:
         post_event("exp_groups", device_id, result)

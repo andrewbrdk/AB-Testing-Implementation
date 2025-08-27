@@ -104,13 +104,13 @@ EXPERIMENTS = {
         "title": "Moon/Mars",
         "groups": {'Moon': 50, 'Mars': 50},
         "fallback": "Moon",
-        "status": "active"
+        "state": "active"
     },
     "white_gold_btn": {
         "title": "White/Gold",
         "groups": {'White': 50, 'Gold': 50},
         "fallback": "White",
-        "status": "active"
+        "state": "active"
     }
 }
 
@@ -182,7 +182,7 @@ EXPERIMENTS_TEMPLATE = """
                 row.innerHTML += `<td>${groups}</td>`;
                 row.innerHTML += `
                     <td>${exp.fallback}</td>
-                    <td>${exp.status}</td>
+                    <td>${exp.state}</td>
                     <td>
                         <button type="button" onclick="showEditRow('${name}')">Edit</button>
                     </td>`;
@@ -202,7 +202,7 @@ EXPERIMENTS_TEMPLATE = """
                 }
                 editRow.innerHTML += `<td>${groups}</td>`
                 editRow.innerHTML += `<td>${exp.fallback}</td>
-                    <td>${exp.status}</td>
+                    <td>${exp.state}</td>
                     <td>
                         <button type="button" onclick="hideEditRow('${name}')">Cancel</button>
                         <button type="button" onclick="saveExperiment('${name}')">Save</button>
@@ -261,7 +261,7 @@ def api_expgroups():
     for exp_name, info in EXPERIMENTS.items():
         group = assign_group(device_id, exp_name) if device_id else ""
         result[exp_name] = {
-            "status": info["status"],
+            "state": info["state"],
             "fallback": info["fallback"],
             "group": group
         }

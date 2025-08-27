@@ -12,9 +12,9 @@ and an experiments admin page.*
 &nbsp; &nbsp; *[2. Hashing](#2-hashing)*  
 &nbsp; &nbsp; *[3. Frontend](#3-frontend)*  
 &nbsp; &nbsp; *[4. Events](#4-events)*  
-&nbsp; &nbsp; *[5. Experiments API](#5-experiments-api)*  
+&nbsp; &nbsp; *[5. Config](#5-config)*  
 &nbsp; &nbsp; *[6. Multiple Experiments](#6-multiple-experiments)*  
-&nbsp; &nbsp; *[7. Experiments Admin Page](#7-experiments-admin-page)*  
+&nbsp; &nbsp; *[7. Admin Page](#7-admin-page)*  
 &nbsp; &nbsp; *[8. Split](#8-split)*  
 &nbsp; &nbsp; *[9. Rollout](#9-rollout)*  
 &nbsp; &nbsp; *[Conclusion](#conclusion)*  
@@ -45,7 +45,7 @@ The experiment group is generated on the backend using a `random.choice` call.
 The group is stored in cookies to ensure a consistent variant on each request.
 
 ```bash
-python 1_rndchoice.py
+python 1_rnd.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
@@ -212,7 +212,7 @@ Using hashing, it is also possible to compute the group on the frontend if a `de
 
 
 ```bash
-python 3_frontendrender.py
+python 3_frontend.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
@@ -453,7 +453,7 @@ Moon: 512 visits, 47 clicks, Conv=9.18 +- 2.55%, Exact: 10.00%
 ```
 
 
-#### 5. Experiments API
+#### 5. Config
 
 An experiment config defines groups with weights,
 a fallback group, and an active/inactive status.
@@ -461,7 +461,7 @@ It can extend to multiple experiments with arbitrary group splits.
 Clients retrieve their groups from the server.
 
 ```bash
-python 5_apiexps.py
+python 5_config.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
@@ -810,14 +810,14 @@ Split Independence moon_mars/white_gold_btn:
 ```
 
 
-#### 7. Experiments Admin Page
+#### 7. Admin Page
 
 An experiments admin page is added to display experiment configurations.
 Admin functions are added in the next sections.
 In production, it is common to use a dedicated service to manage experiments.
 
 ```bash
-python 7_expadmin.py
+python 7_admin.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
@@ -917,7 +917,7 @@ To avoid this, previously assigned groups must be stored, either on the client o
 In this example, groups are stored on the backend.
 
 ```bash
-python 8_changesplit.py
+python 8_split.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
@@ -987,6 +987,7 @@ Traffic split follows changes in config.
 ```
 
 #### 9. Rollout
+
 Experiments have three states: inactive, active, and rollout.
 Inactive experiments serve the fallback variant, and group assignments are not recorded.
 Active experiments assign users to groups according to the split,
