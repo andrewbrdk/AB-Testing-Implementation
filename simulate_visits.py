@@ -93,11 +93,23 @@ async def check_split_independence(exp1, exp2):
     exps = await fetch_experiments()
     if exps is None:
         return
-    exp1_active = exps.get(exp1, {}).get('active')
-    exp1_split = exps.get(exp1, {}).get('groups') if exp1_active else {exps.get(exp1, {}).get('fallback'): 1}
+    exp1_split = None
+    exp1_state = exps.get(exp1, {}).get('state')
+    if exp1_state == 'active':
+        exp1_split = exps.get(exp1, {}).get('groups')
+    elif exp1_state == 'inactive':
+        exp1_split = {exps.get(exp1, {}).get('fallback'): 1}
+    elif exp1_state == 'rollout':
+        exp1_split = {exps.get(exp1, {}).get('rollout_group'): 1}
     exp1_split = {k: v / sum(exp1_split.values()) for k, v in exp1_split.items()}
-    exp2_active = exps.get(exp2, {}).get('active')
-    exp2_split = exps.get(exp2, {}).get('groups') if exp2_active else {exps.get(exp2, {}).get('fallback'): 1}
+    exp2_split = None
+    exp2_state = exps.get(exp2, {}).get('state')
+    if exp2_state == 'active':
+        exp2_split = exps.get(exp2, {}).get('groups')
+    elif exp2_state == 'inactive':
+        exp2_split = {exps.get(exp2, {}).get('fallback'): 1}
+    elif exp2_state == 'rollout':
+        exp2_split = {exps.get(exp2, {}).get('rollout_group'): 1}
     exp2_split = {k: v / sum(exp2_split.values()) for k, v in exp2_split.items()}
     expected_split = {}
     for g1, s1 in exp1_split.items():
@@ -119,7 +131,7 @@ async def check_split_independence(exp1, exp2):
     total = sum(split.values())
     print(f"Split Independence {exp1}/{exp2}:")
     for g in sorted(split):
-        print(f'{g}: {split[g] / total * 100:.2f}%, independence {expected_split[g] * 100:.2f}%')
+        print(f'{g}: {split[g] / total * 100:.2f}%, independence {expected_split.get(g) * 100:.2f}%')
 
 async def main():
     parser = argparse.ArgumentParser(description="Simulate A/B test visits")
