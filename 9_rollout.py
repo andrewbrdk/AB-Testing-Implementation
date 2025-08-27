@@ -105,14 +105,18 @@ EXPERIMENTS = {
         "groups": {'Moon': 50, 'Mars': 50},
         "fallback": "Moon",
         "state": "active",
-        "rollout_group": None
+        "rollout_group": None,
+        "start": datetime.now().isoformat(),
+        "end": None
     },
     "white_gold_btn": {
         "title": "White/Gold",
         "groups": {'White': 50, 'Gold': 50},
         "fallback": "White",
         "state": "inactive",
-        "rollout_group": None
+        "rollout_group": None,
+        "start": None,
+        "end": None
     }
 }
 
@@ -171,6 +175,8 @@ EXPERIMENTS_TEMPLATE = """
                     <th>Fallback</th>
                     <th>State</th>
                     <th>Rollout</th>
+                    <th>Start</th>
+                    <th>End</th>
                     <th></th>
                 </tr>`;
 
@@ -187,6 +193,8 @@ EXPERIMENTS_TEMPLATE = """
                 row.innerHTML += `<td>${exp.state}</td>`;
                 let rollout_group = exp.rollout_group ? exp.rollout_group : '';
                 row.innerHTML += `<td>${rollout_group}</td>`;
+                row.innerHTML += `<td>${formatISOTimestamp(exp.start)}</td>`;
+                row.innerHTML += `<td>${formatISOTimestamp(exp.end)}</td>`;
                 row.innerHTML += `<td>
                         <button type="button" class="${exp.state === 'rollout' ? 'hidden' : ''}" onclick="showEditRow('${name}')">Change</button>
                     </td>`;
@@ -215,6 +223,7 @@ EXPERIMENTS_TEMPLATE = """
                 } else if (exp.state === "active") {
                     stateSelect = `<select id="stateselect-${name}" onchange="onStateChange('${name}')">
                         <option value="active">active</option>
+                        <option value="inactive">inactive</option>
                         <option value="rollout">rollout</option>
                     </select>`;
                 }
@@ -225,6 +234,8 @@ EXPERIMENTS_TEMPLATE = """
                 }
                 rollout_group += `</select>`;
                 editRow.innerHTML += `<td>${rollout_group}</td>`;
+                editRow.innerHTML += `<td>${formatISOTimestamp(exp.start)}</td>`;
+                editRow.innerHTML += `<td>${formatISOTimestamp(exp.end)}</td>`;
                 editRow.innerHTML += `<td>
                         <button type="button" onclick="hideEditRow('${name}')">Cancel</button>
                         <button type="button" onclick="saveExperiment('${name}')">Save</button>
@@ -271,7 +282,7 @@ EXPERIMENTS_TEMPLATE = """
                 const rolloutSelect = editRow.querySelector(`#rollout-groups-${name}`);
                 rollout_group = rolloutSelect.value;
             }
-            const payload = { name, groups };
+            const payload = {name, groups};
             if (state) {
                 payload.state = state;
             }
@@ -283,6 +294,19 @@ EXPERIMENTS_TEMPLATE = """
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify(payload)
             }).then(() => location.reload());
+        }
+
+        function formatISOTimestamp(isoString) {
+            const date = new Date(isoString);
+            if (!isoString || isNaN(date.getTime())) {
+                return "";
+            }
+            const year = date.getFullYear();
+            const month = String(date.getMonth() + 1).padStart(2, "0");
+            const day = String(date.getDate()).padStart(2, "0");
+            const hours = String(date.getHours()).padStart(2, "0");
+            const minutes = String(date.getMinutes()).padStart(2, "0");
+            return `${year}-${month}-${day} ${hours}:${minutes}`;
         }
 
         fetchExperiments().then(renderExperiments);
@@ -306,7 +330,7 @@ def api_expgroups():
     for exp_name, info in EXPERIMENTS.items():
         group = assign_group(device_id, exp_name) if device_id else ""
         result[exp_name] = {
-            "status": info["status"],
+            "state": info["state"],
             "fallback": info["fallback"],
             "group": group
         }
@@ -322,38 +346,45 @@ def update_experiment():
         return jsonify({"error": "Experiment not found"}), 404
     current_state = EXPERIMENTS[name]["state"]
     new_state = data.get("state", current_state)
-    if ((current_state == "inactive" and new_state in ("active", "rollout"))
-        or (current_state == "active" and new_state in ("rollout"))):
-        EXPERIMENTS[name]["state"] = new_state
-    else:
+    allowed_transitions = [("inactive", "inactive"),
+                           ("inactive", "active"),
+                           ("active", "inactive"),
+                           ("active", "active"),
+                           ("active", "rollout")]
+    if not (current_state, new_state) in allowed_transitions:
         return jsonify({"error": f"Can't change state from {current_state} to {new_state}"}), 400
+    rollout_group = data.get("rollout_group")
+    if new_state == "rollout" and rollout_group not in EXPERIMENTS[name]["groups"]:
+        return jsonify({"error": "Invalid rollout group"}), 400
+    EXPERIMENTS[name]["state"] = new_state
     if new_state == "rollout":
-        chosen_group = data.get("rollout_group")
-        if chosen_group not in EXPERIMENTS[name]["groups"]:
-            EXPERIMENTS[name]["state"] = current_state
-            return jsonify({"error": "Invalid rollout group"}), 400
-        EXPERIMENTS[name]["rollout_group"] = chosen_group
-        for device_id, exps in USERGROUPS.items():
-            if name in exps:
-                exps[name] = rollout_group
+        EXPERIMENTS[name]["rollout_group"] = rollout_group
+        EXPERIMENTS[name]["end"] = datetime.now().isoformat()
+    elif current_state == "inactive" and new_state == "active":
+        EXPERIMENTS[name]["start"] = datetime.now().isoformat()
+        EXPERIMENTS[name]["end"] = None
+    elif current_state == "active" and new_state == "inactive":
+        EXPERIMENTS[name]["end"] = datetime.now().isoformat()
     if new_state != "rollout":
-        old_groups = set(EXPERIMENTS[name]["groups"].keys())
-        new_groups = set(data.get("groups", {}).keys())
-        if old_groups != new_groups:
-            return jsonify({
-                "error": "Groups do not match existing experiment definition",
-                "expected": list(old_groups),
-                "got": list(new_groups)
-            }), 400
-        for g in old_groups:
-            EXPERIMENTS[name]["groups"][g] = data["groups"][g]
+        update_split(data)
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
 
+def update_split(data):
+    name = data.get("name")
+    old_groups = set(EXPERIMENTS[name]["groups"].keys())
+    new_groups = set(data.get("groups", {}).keys())
+    if old_groups == new_groups:
+        for g in old_groups:
+            EXPERIMENTS[name]["groups"][g] = data["groups"][g]
+
 def assign_group(device_id: str, experiment: str) -> str:
-    if EXPERIMENTS[experiment]["status"] == "rollout":
+    if EXPERIMENTS[experiment]["state"] == "rollout":
         return EXPERIMENTS[experiment]["rollout_group"]
+    elif EXPERIMENTS[experiment]["state"] == "inactive":
+        return EXPERIMENTS[experiment]["fallback"]
     if device_id in USERGROUPS and experiment in USERGROUPS[device_id]:
-        return USERGROUPS[device_id][experiment]
+        gr, ts = USERGROUPS[device_id][experiment]
+        return gr
     groups = EXPERIMENTS[experiment]["groups"]
     total_parts = sum(groups.values())
     key = f"{device_id}:{experiment}"
@@ -369,7 +400,7 @@ def assign_group(device_id: str, experiment: str) -> str:
             break
     if device_id not in USERGROUPS:
         USERGROUPS[device_id] = {}
-    USERGROUPS[device_id][experiment] = chosen
+    USERGROUPS[device_id][experiment] = (chosen, datetime.now().isoformat())
     return chosen
 
 def post_event(event_name: str, device_id: str, params: dict):
