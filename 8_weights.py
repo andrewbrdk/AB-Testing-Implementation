@@ -10,7 +10,7 @@ INDEX_TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
 </head>
 <body>
     <div id="variant-container">Loading...</div>
@@ -121,36 +121,7 @@ EXPERIMENTS_TEMPLATE = """
 <html>
 <head>
     <title>Experiments</title>
-    <style>
-        body {
-            margin: 0 3vw;
-            font-family: sans-serif;
-        }
-        table {
-            border-collapse: collapse;
-            width: 100%;
-            margin: 0;
-            padding: 0;
-        }
-        th, td {
-            text-align: left;
-            padding: 10px 3px;
-            vertical-align: top;
-        }
-        .group-weight {
-            padding: 2px;
-        }
-        .group-weight input {
-            width: 60px;
-            text-align: right;
-            border: none;
-            border-bottom: 1px solid black;
-            outline: none;
-        }
-        .hidden {
-            display: none;
-        }
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 </head>
 <body>
     <h1>Experiments</h1>

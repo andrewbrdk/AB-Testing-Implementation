@@ -9,7 +9,7 @@ TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
 </head>
 <body>
     {% if variant == 'Moon' %}

@@ -64,7 +64,7 @@ TEMPLATE = '''
 <html>
 <head>
     <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
 </head>
 <body>
     {% if variant == 'Moon' %}
@@ -146,7 +146,7 @@ TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
 </head>
 <body>
     {% if variant == 'Moon' %}
@@ -229,7 +229,7 @@ TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
 </head>
 <body>
     <div id="variant-container">Loading...</div>
@@ -336,7 +336,7 @@ TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
 </head>
 <body>
     <div id="variant-container">Loading...</div>
@@ -482,7 +482,7 @@ INDEX_TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
 </head>
 <body>
     <div id="variant-container">Loading...</div>
@@ -674,7 +674,7 @@ INDEX_TEMPLATE = """
 <html>
 <head>
     <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='styles.css') }}">
+    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
 </head>
 <body>
     <div id="variant-container">Loading...</div>
@@ -855,9 +855,7 @@ EXPERIMENTS_TEMPLATE = """
 <html>
 <head>
     <title>Experiments</title>
-    <style>
-        /* ... */
-    </style>
+    <link rel="stylesheet" href="{{ url_for('static', filename='admin.css') }}">
 </head>
 <body>
     <h1>Experiments</h1>
