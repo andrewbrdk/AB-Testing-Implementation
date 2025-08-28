@@ -816,8 +816,7 @@ Split Independence moon_mars/white_gold_btn:
 
 #### 7. Admin Page
 
-An experiments configuration page is added,
-with admin functions described later.
+An experiments configuration page is added, with admin functions described later.
 In production, experiments are typically managed by a dedicated service.
 
 ```bash
@@ -908,12 +907,12 @@ Experiments remain unaffected by the changes.
 
 #### 8. Weights
 
-Group split changes in active experiments require caution.
-Users receive their experiment groups on each visit, and altering splits may cause them to switch groups.
-While `hash(user_id || exp_name) % n_groups` remains constant, its mapping to groups depends on the split.
-If the split changes, users may be reassigned inconsistently.
-To avoid this, previously assigned groups must be stored, either on the client or backend.
-In this example, groups are stored on the backend.
+Changing group weights in active experiments may result in users switching groups.
+Users receive their experiment groups on each visit.
+While `hash(user_id || exp_name) % n_groups` remains constant, its mapping to groups depends on the weights.
+On weights change, users may be reassigned inconsistently.
+To avoid this, previously assigned groups must be stored.
+In this example, groups are stored on the backend in the `ASSIGNEDGROUPS` variable.
 
 ```bash
 python 8_weights.py
@@ -925,16 +924,17 @@ Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroup
 Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
 <p align="center">
-  <img src="https://i.postimg.cc/hDpTHWHH/experiments-admin-edit-split.png" alt="Experiments Admin Edit Split" width="800" />
+  <img src="https://i.postimg.cc/FrF1NQw3/weights.png" alt="Change Weights" width="800" />
 </p>
 
 ```python
 # ...
-USERGROUPS = {}
+ASSIGNEDGROUPS = {}
 
 def assign_group(device_id: str, experiment: str) -> str:
-    if device_id in USERGROUPS and experiment in USERGROUPS[device_id]:
-        return USERGROUPS[device_id][experiment]
+    if (device_id, experiment) in ASSIGNEDGROUPS:
+        gr, ts = ASSIGNEDGROUPS[(device_id, experiment)]
+        return gr
     groups = EXPERIMENTS[experiment]["groups"]
     total_parts = sum(groups.values())
     key = f"{device_id}:{experiment}"
@@ -943,14 +943,12 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_mod = hash_int % total_parts
     c = 0
     chosen = EXPERIMENTS[experiment]["fallback"]
-    for group_name, split in sorted(groups.items()):
-        c += split
+    for group_name, weight in sorted(groups.items()):
+        c += weight
         if hash_mod < c:
             chosen = group_name
             break
-    if device_id not in USERGROUPS:
-        USERGROUPS[device_id] = {}
-    USERGROUPS[device_id][experiment] = chosen
+    ASSIGNEDGROUPS[(device_id, experiment)] = (chosen, datetime.now().isoformat())
     return chosen
 
 @app.route('/api/experiments/update', methods=['POST'])
@@ -962,50 +960,61 @@ def update_experiment():
     old_groups = set(EXPERIMENTS[name]["groups"].keys())
     new_groups = set(data.get("groups", {}).keys())
     if old_groups != new_groups:
-        return jsonify({
-            "error": "Groups do not match existing experiment definition",
-            "expected": list(old_groups),
-            "got": list(new_groups)
-        }), 400
+        jsonify({"error": f"Can't change {name} group weights"}), 400
     for g in old_groups:
         EXPERIMENTS[name]["groups"][g] = data["groups"][g]
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
-# ...
+
+#...
 ```
 
-* `USERGROUPS = {}` - stores assigned groups.
-* `return USERGROUPS[device_id][experiment]` - returns an already assigned group if it exists.
-* `USERGROUPS[device_id][experiment] = chosen` - saves the computed group.
-* `@app.route('/api/experiments/update', methods=['POST'])` - pdates experiment splits.
-* `EXPERIMENTS_TEMPLATE` is updated to support split modification.
+* `ASSIGNEDGROUPS = {}` - stores assigned groups.
+* `if (device_id, experiment) in ASSIGNEDGROUPS: ...` - checks an already assigned group, returns it if exists.
+* `ASSIGNEDGROUPS[(device_id, experiment)] = (chosen, datetime.now().isoformat())` - saves the assigned group and timestamp.
+* `@app.route('/api/experiments/update', methods=['POST'])` - updates experiment weights.
+* `EXPERIMENTS_TEMPLATE` is changed to support weights change.
 
 Traffic split follows changes in config.
 ```bash
 > python simulate_visits.py -n 1000
-...
+
+Moon/Mars Exp Split:
+Mars: 240 visits (24.00%)
+Moon: 760 visits (76.00%)
+
+White/Gold Exp Split:
+Gold: 512 visits (51.20%)
+White: 488 visits (48.80%)
+
+Moon/Mars Exp events:
+Mars: 240 visits, 56 clicks, Conv=23.33 +- 5.46%, Exact: 20.00%
+Moon: 760 visits, 75 clicks, Conv=9.87 +- 2.16%, Exact: 10.00%
+
+White/Gold Exp events:
+Gold: 512 visits, 72 clicks, Conv=14.06 +- 3.07%, Exact: 10.00%
+White: 488 visits, 59 clicks, Conv=12.09 +- 2.95%, Exact: 10.00%
+
+Split Independence moon_mars/white_gold_btn:
+('Mars', 'Gold'): 13.20%, independence 12.50%
+('Mars', 'White'): 10.80%, independence 12.50%
+('Moon', 'Gold'): 38.00%, independence 37.50%
+('Moon', 'White'): 38.00%, independence 37.50%
 ```
 
 #### 9. Rollout
 
 Experiments have three states: inactive, active, and rollout.
-Inactive experiments serve the fallback variant, and group assignments are not recorded.
-Active experiments assign users to groups according to the split,
-with assignments stored in USERGROUPS.
-In rollout, all users receive a selected rollout group;
-previous assignments in USERGROUPS remain but are ignored,
-and new user groups are not stored.
+Inactive experiments serve the fallback variant, and no groups are recorded.
+Active experiments assign users to groups according to the weights,
+with assignments stored in `ASSIGNEDGROUPS`.
+In rollout, all users receive a chosen rollout group;
+stored assignments are ignored, and new ones are not recorded.
 
-Transition rules are as follows: when moving from inactive to active,
-the experiment start time is recorded and new users are assigned groups.
-Transitioning from active to rollout requires selecting a rollout group;
-after rollout, the experiment cannot be changed, and the end time is recorded.
-Transitioning from active to inactive may be used for bug fixes,
-in which all users receive the fallback variant,
-previous assignments remain in USERGROUPS,
-and on reactivation, the start date is updated.
-Only new users after the new start date should included in analysis;
-previous users should be excluded.
-Transition from inactive directly to rollout is not allowed.
+Transitioning from inactive to active records the start time and assigns groups to new users.
+Active to rollout requires selecting a rollout group and records the end time.
+Active to inactive may be used for bug fixes: all users receive the fallback, assignments remain stored, and after reactivation previously assigned users keep their variants but should be excluded from analysis; only new assignments should be included.
+Rollout to active is treated as a restart: earlier groups persist but should be excluded from analysis.
+Inactive to rollout transitions are not allowed.
 
 ```bash
 python 9_rollout.py
@@ -1017,7 +1026,7 @@ Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroup
 Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
 <p align="center">
-  <img src="https://i.postimg.cc/hDpTHWHH/experiments-rollout.png" alt="Experiments Rollout" width="800" />
+  <img src="https://i.postimg.cc/WjxFJzK1/rollout.png" alt="Rollout" width="800" />
 </p>
 
 ```python
@@ -1055,40 +1064,45 @@ def update_experiment():
                            ("inactive", "active"),
                            ("active", "inactive"),
                            ("active", "active"),
-                           ("active", "rollout")]
+                           ("active", "rollout"),
+                           ("rollout", "rollout"),
+                           ("rollout", "active")]
     if not (current_state, new_state) in allowed_transitions:
         return jsonify({"error": f"Can't change state from {current_state} to {new_state}"}), 400
     rollout_group = data.get("rollout_group")
     if new_state == "rollout" and rollout_group not in EXPERIMENTS[name]["groups"]:
         return jsonify({"error": "Invalid rollout group"}), 400
     EXPERIMENTS[name]["state"] = new_state
-    if new_state == "rollout":
-        EXPERIMENTS[name]["rollout_group"] = rollout_group
-        EXPERIMENTS[name]["end"] = datetime.now().isoformat()
-    elif current_state == "inactive" and new_state == "active":
+    if current_state == "inactive" and new_state == "active":
         EXPERIMENTS[name]["start"] = datetime.now().isoformat()
         EXPERIMENTS[name]["end"] = None
     elif current_state == "active" and new_state == "inactive":
         EXPERIMENTS[name]["end"] = datetime.now().isoformat()
+    elif current_state == "active" and new_state == "rollout":
+        EXPERIMENTS[name]["rollout_group"] = rollout_group
+        EXPERIMENTS[name]["end"] = datetime.now().isoformat()
+    elif current_state == "rollout" and new_state == "rollout":
+        EXPERIMENTS[name]["rollout_group"] = rollout_group
+    elif current_state == "rollout" and new_state == "active":
+        EXPERIMENTS[name]["rollout_group"] = None
+        EXPERIMENTS[name]["start"] = datetime.now().isoformat()
+        EXPERIMENTS[name]["end"] = None
     if new_state != "rollout":
-        update_split(data)
-    return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
-
-def update_split(data):
-    name = data.get("name")
-    old_groups = set(EXPERIMENTS[name]["groups"].keys())
-    new_groups = set(data.get("groups", {}).keys())
-    if old_groups == new_groups:
+        old_groups = set(EXPERIMENTS[name]["groups"].keys())
+        new_groups = set(data.get("groups", {}).keys())
+        if old_groups != new_groups:
+            jsonify({"error": f"Can't change {name} group weights"}), 400
         for g in old_groups:
             EXPERIMENTS[name]["groups"][g] = data["groups"][g]
+    return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
 
 def assign_group(device_id: str, experiment: str) -> str:
     if EXPERIMENTS[experiment]["state"] == "rollout":
         return EXPERIMENTS[experiment]["rollout_group"]
     elif EXPERIMENTS[experiment]["state"] == "inactive":
         return EXPERIMENTS[experiment]["fallback"]
-    if device_id in USERGROUPS and experiment in USERGROUPS[device_id]:
-        gr, ts = USERGROUPS[device_id][experiment]
+    if (device_id, experiment) in ASSIGNEDGROUPS:
+        gr, ts = ASSIGNEDGROUPS[(device_id, experiment)]
         return gr
     groups = EXPERIMENTS[experiment]["groups"]
     total_parts = sum(groups.values())
@@ -1098,28 +1112,44 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_mod = hash_int % total_parts
     c = 0
     chosen = EXPERIMENTS[experiment]["fallback"]
-    for group_name, split in sorted(groups.items()):
-        c += split
+    for group_name, weight in sorted(groups.items()):
+        c += weight
         if hash_mod < c:
             chosen = group_name
             break
-    if device_id not in USERGROUPS:
-        USERGROUPS[device_id] = {}
-    USERGROUPS[device_id][experiment] = (chosen, datetime.now().isoformat())
+    ASSIGNEDGROUPS[(device_id, experiment)] = (chosen, datetime.now().isoformat())
     return chosen
 # ...
 ```
 
 * `EXPERIMENTS = {... {..."state": "active",...}...}` - experiments have states, rollout groups and start/end time.
-* `def update_experiment()` - updates state and split from the admin page.
-* `def assign_group(...)` - Returns fallback for inactive experiments, rollout_group for rollouted. For active experiments first checks already assigned groups. In none found, assigns one.
+* `def update_experiment()` - updates state and weights from the admin page.
+* `def assign_group(...)` - returns fallback for inactive experiments, rollout_group for rollout. For active experiments first checks already assigned groups. In none found, assigns one.
 
 Traffic split follows changes in config.
+TODO: update exact conv. Add exact split.
 ```bash
 > python simulate_visits.py -n 1000
-...
-```
 
+Moon/Mars Exp Split:
+Mars: 487 visits (48.70%)
+Moon: 513 visits (51.30%)
+
+White/Gold Exp Split:
+White: 1000 visits (100.00%)
+
+Moon/Mars Exp events:
+Mars: 487 visits, 97 clicks, Conv=19.92 +- 3.62%, Exact: 20.00%
+Moon: 513 visits, 48 clicks, Conv=9.36 +- 2.57%, Exact: 10.00%
+
+#todo: update exact Conv
+White/Gold Exp events:
+White: 1000 visits, 145 clicks, Conv=14.50 +- 2.23%, Exact: 10.00%
+
+Split Independence moon_mars/white_gold_btn:
+('Mars', 'White'): 48.70%, independence 50.00%
+('Moon', 'White'): 51.30%, independence 50.00%
+```
 
 #### Conclusion
 
