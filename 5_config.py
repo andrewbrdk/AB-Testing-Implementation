@@ -130,11 +130,13 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_int = int.from_bytes(hash_bytes, 'big')
     hash_mod = hash_int % total_parts
     c = 0
+    chosen = EXPERIMENTS[experiment]["fallback"]
     for group_name, weight in sorted(groups.items()):
         c += weight
         if hash_mod < c:
-            return group_name
-    return None
+            chosen = group_name
+            break
+    return chosen
 
 def post_event(event_name: str, device_id: str, params: dict):
     payload = {

@@ -15,7 +15,7 @@ and an experiments admin page.*
 &nbsp; &nbsp; *[5. Config](#5-config)*  
 &nbsp; &nbsp; *[6. Multiple Experiments](#6-multiple-experiments)*  
 &nbsp; &nbsp; *[7. Admin Page](#7-admin-page)*  
-&nbsp; &nbsp; *[8. Weights](#8-weights)*
+&nbsp; &nbsp; *[8. Weights](#8-weights)*  
 &nbsp; &nbsp; *[9. Rollout](#9-rollout)*  
 &nbsp; &nbsp; *[Conclusion](#conclusion)*  
 
@@ -603,11 +603,13 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_int = int.from_bytes(hash_bytes, 'big')
     hash_mod = hash_int % total_parts
     c = 0
+    chosen = EXPERIMENTS[experiment]["fallback"]
     for group_name, weight in sorted(groups.items()):
         c += weight
         if hash_mod < c:
-            return group_name
-    return None
+            chosen = group_name
+            break
+    return chosen
 
 def post_event(event_name: str, device_id: str, params: dict):
     payload = {
@@ -759,11 +761,13 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_int = int.from_bytes(hash_bytes, 'big')
     hash_mod = hash_int % total_parts
     c = 0
+    chosen = EXPERIMENTS[experiment]["fallback"]
     for group_name, weight in sorted(groups.items()):
         c += weight
         if hash_mod < c:
-            return group_name
-    return None
+            chosen = group_name
+            break
+    return chosen
 
 # ...
 ```
