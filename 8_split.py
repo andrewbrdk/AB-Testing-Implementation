@@ -175,45 +175,46 @@ EXPERIMENTS_TEMPLATE = """
                     <th></th>
                 </tr>`;
 
+            idx = 0;
             for (const [name, exp] of Object.entries(experiments)) {
+                idx += 1;
                 const row = document.createElement('tr');
-                row.id = "row-" + name;
-                row.innerHTML = `<td>${exp.title}</td>`;
-                row.innerHTML += `<td>${name}</td>`;
+                row.id = `row-${idx}`;
+                row.innerHTML = `<td>${escapeHTML(exp.title)}</td>`;
+                row.innerHTML += `<td>${escapeHTML(name)}</td>`;
                 let groups = "";
                 for (const [g, split] of Object.entries(exp.groups)) {
-                    groups += `<div class="split-row">${g}: ${split}</div>`;
+                    groups += `<div class="split-row">${escapeHTML(g)}: ${split}</div>`;
                 }
                 row.innerHTML += `<td>${groups}</td>`;
                 row.innerHTML += `
-                    <td>${exp.fallback}</td>
+                    <td>${escapeHTML(exp.fallback)}</td>
                     <td>${exp.state}</td>
                     <td>
-                        <button type="button" onclick="showEditRow('${name}')">Edit</button>
+                        <button type="button" onclick="showEditRow('${row.id}', 'edit-${idx}')">Change</button>
                     </td>`;
                 table.appendChild(row);
 
                 const editRow = document.createElement('tr');
-                editRow.id = "edit-" + name;
+                editRow.id = `edit-${idx}`;
                 editRow.classList.add("hidden");
                 editRow.style.background = "#f9f9f9";
-                editRow.innerHTML = `<td>${exp.title}</td>`
-                editRow.innerHTML += `<td>${name}</td>`
+                editRow.innerHTML = `<td>${escapeHTML(exp.title)}</td>`;
+                editRow.innerHTML += `<td>${escapeHTML(name)}</td>`;
                 groups = "";
                 for (const [g, split] of Object.entries(exp.groups)) {
                     groups += `<div class="split-row">
-                        <span class="groupname">${g}</span>:
-                        <input type="number" name="group_split" value="${split}">
+                        <span class="groupname">${escapeHTML(g)}</span>:
+                        <input type="number" class="weights" data-group="${g}" value="${split}">
                     </div>`;
                 }
-                editRow.innerHTML += `<td>${groups}</td>`
-                editRow.innerHTML += `<td>${exp.fallback}</td>
+                editRow.innerHTML += `<td>${groups}</td>`;
+                editRow.innerHTML += `<td>${escapeHTML(exp.fallback)}</td>
                     <td>${exp.state}</td>
                     <td>
-                        <button type="button" onclick="hideEditRow('${name}')">Cancel</button>
-                        <button type="button" onclick="saveExperiment('${name}')">Save</button>
-                    </td>
-                `;
+                        <button type="button" onclick="hideEditRow('${row.id}', '${editRow.id}')">Cancel</button>
+                        <button type="button" onclick="saveExperiment('${editRow.id}', '${name}')">Save</button>
+                    </td>`;
                 table.appendChild(editRow);
             };
 
@@ -222,28 +223,38 @@ EXPERIMENTS_TEMPLATE = """
             container.appendChild(table);
         }
 
-        function showEditRow(name) {
-            document.getElementById("row-" + name).style.display = "none";
-            document.getElementById("edit-" + name).classList.remove("hidden");
+        function showEditRow(rowId, editRowId) {
+            document.getElementById(rowId).style.display = "none";
+            document.getElementById(editRowId).classList.remove("hidden");
         }
 
-        function hideEditRow(name) {
-            document.getElementById("edit-" + name).classList.add("hidden");
-            document.getElementById("row-" + name).style.display = "";
+        function hideEditRow(rowId, editRowId) {
+            document.getElementById(editRowId).classList.add("hidden");
+            document.getElementById(rowId).style.display = "";
         }
 
-        function saveExperiment(name) {
-            const editRow = document.getElementById("edit-" + name);
-            const groupNames = [...editRow.querySelectorAll('span.groupname')].map(i => i.textContent);
-            const groupSplits = [...editRow.querySelectorAll('input[name="group_split"]')].map(i => parseInt(i.value));
+        function saveExperiment(editRowId, name) {
+            const editRow = document.getElementById(editRowId);
+            const weights = editRow.querySelectorAll('input.weights');
             const groups = {};
-            groupNames.forEach((g, i) => groups[g] = groupSplits[i]);
-
+            weights.forEach(input => {
+                const groupName = input.dataset.group;
+                const splitValue = parseInt(input.value);
+                groups[groupName] = splitValue;
+            });
+            const payload = {name, groups};
             fetch(`/api/experiments/update`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, groups })
+                headers: {"Content-Type": "application/json"},
+                body: JSON.stringify(payload)
             }).then(() => location.reload());
+        }
+
+        function escapeHTML(str) {
+            if (typeof str !== "string") return "";
+            const div = document.createElement("div");
+            div.textContent = str;
+            return div.innerHTML;
         }
 
         fetchExperiments().then(renderExperiments);
@@ -284,11 +295,7 @@ def update_experiment():
     old_groups = set(EXPERIMENTS[name]["groups"].keys())
     new_groups = set(data.get("groups", {}).keys())
     if old_groups != new_groups:
-        return jsonify({
-            "error": "Groups do not match existing experiment definition",
-            "expected": list(old_groups),
-            "got": list(new_groups)
-        }), 400
+        jsonify({"error": f"Can't change {name} split"}), 400
     for g in old_groups:
         EXPERIMENTS[name]["groups"][g] = data["groups"][g]
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})

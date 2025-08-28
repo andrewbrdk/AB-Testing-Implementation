@@ -35,7 +35,7 @@ INDEX_TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     deviceId: deviceId,
-                    source: 'client',
+                    source: 'browser',
                     event: eventName,
                     params: params
                 })
@@ -120,7 +120,7 @@ EXPERIMENTS = {
     }
 }
 
-USERGROUPS = {}
+ASSIGNEDGROUPS = {}
 
 EXPERIMENTS_TEMPLATE = """
 <!DOCTYPE html>
@@ -128,20 +128,23 @@ EXPERIMENTS_TEMPLATE = """
 <head>
     <title>Experiments</title>
     <style>
+        body {
+            margin: 0 3vw;
+            font-family: sans-serif;
+        }
         table {
             border-collapse: collapse;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
         th, td {
             text-align: left;
-            padding: 10px;
+            padding: 10px 3px;
             vertical-align: top;
         }
         .split-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 4px;
-            align-items: center;
+            padding: 2px;
         }
         .split-row input {
             width: 60px;
@@ -171,6 +174,7 @@ EXPERIMENTS_TEMPLATE = """
             table.innerHTML += `
                 <tr>
                     <th>Experiment</th>
+                    <th>Key</th>
                     <th>Groups: Split</th>
                     <th>Fallback</th>
                     <th>State</th>
@@ -180,65 +184,72 @@ EXPERIMENTS_TEMPLATE = """
                     <th></th>
                 </tr>`;
 
+            idx = 0;
             for (const [name, exp] of Object.entries(experiments)) {
+                idx += 1;
                 const row = document.createElement('tr');
-                row.id = "row-" + name;
-                row.innerHTML = `<td>${exp.title}</td>`;
+                row.id = `row-${idx}`;
+                row.innerHTML = `<td>${escapeHTML(exp.title)}</td>`;
+                row.innerHTML += `<td>${escapeHTML(name)}</td>`;
                 let groups = "";
                 for (const [g, split] of Object.entries(exp.groups)) {
-                    groups += `<div class="split-row">${g}: ${split}</div>`;
+                    groups += `<div class="split-row">${escapeHTML(g)}: ${split}</div>`;
                 }
                 row.innerHTML += `<td>${groups}</td>`;
-                row.innerHTML += `<td>${exp.fallback}</td>`;
+                row.innerHTML += `<td>${escapeHTML(exp.fallback)}</td>`;
                 row.innerHTML += `<td>${exp.state}</td>`;
-                let rollout_group = exp.rollout_group ? exp.rollout_group : '';
+                let rollout_group = exp.rollout_group ? escapeHTML(exp.rollout_group) : '';
                 row.innerHTML += `<td>${rollout_group}</td>`;
                 row.innerHTML += `<td>${formatISOTimestamp(exp.start)}</td>`;
                 row.innerHTML += `<td>${formatISOTimestamp(exp.end)}</td>`;
                 row.innerHTML += `<td>
-                        <button type="button" class="${exp.state === 'rollout' ? 'hidden' : ''}" onclick="showEditRow('${name}')">Change</button>
+                        <button type="button" onclick="showEditRow('${row.id}', 'edit-${idx}')">Change</button>
                     </td>`;
                 table.appendChild(row);
 
                 const editRow = document.createElement('tr');
-                editRow.id = "edit-" + name;
+                editRow.id = `edit-${idx}`;
                 editRow.classList.add("hidden");
                 editRow.style.background = "#f9f9f9";
-                editRow.innerHTML = `<td>${exp.title}</td>`;
+                editRow.innerHTML = `<td>${escapeHTML(exp.title)}</td>`;
+                editRow.innerHTML += `<td>${escapeHTML(name)}</td>`;
                 groups = "";
                 for (const [g, split] of Object.entries(exp.groups)) {
                     groups += `<div class="split-row">
-                        <span class="groupname">${g}</span>:
-                        <input type="number" name="group_split" value="${split}">
+                        <span class="groupname">${escapeHTML(g)}</span>:
+                        <input type="number" class="weights" data-group="${g}" value="${split}">
                     </div>`;
                 }
                 editRow.innerHTML += `<td>${groups}</td>`;
-                editRow.innerHTML += `<td>${exp.fallback}</td>`;
-                let stateSelect = "";
+                editRow.innerHTML += `<td>${escapeHTML(exp.fallback)}</td>`;
+                let stateSelect = `<select class="stateselect" onchange="onStateChange('${editRow.id}')">`;
                 if (exp.state === "inactive") {
-                    stateSelect = `<select id="stateselect-${name}">
+                    stateSelect += `
                         <option value="inactive">inactive</option>
-                        <option value="active">active</option>
-                    </select>`;
+                        <option value="active">active</option>`;
                 } else if (exp.state === "active") {
-                    stateSelect = `<select id="stateselect-${name}" onchange="onStateChange('${name}')">
+                    stateSelect += `
                         <option value="active">active</option>
                         <option value="inactive">inactive</option>
+                        <option value="rollout">rollout</option>`;
+                } else if (exp.state === "rollout") {
+                    stateSelect += `
                         <option value="rollout">rollout</option>
-                    </select>`;
+                        <option value="active">active</option>`;
                 }
+                stateSelect += '</select>';
                 editRow.innerHTML += `<td>${stateSelect}</td>`;
-                rollout_group = `<select id="rollout-groups-${name}" class="hidden">`;
+                rollout_group = `<select class="rollout-groups ${exp.state != "rollout" ? "hidden" : ""}">`;
                 for (const g of Object.keys(exp.groups)) {
-                    rollout_group += `<option value="${g}">${g}</option>`;
+                    rollout_group += `<option value="${g}">${escapeHTML(g)}</option>`;
                 }
                 rollout_group += `</select>`;
                 editRow.innerHTML += `<td>${rollout_group}</td>`;
                 editRow.innerHTML += `<td>${formatISOTimestamp(exp.start)}</td>`;
                 editRow.innerHTML += `<td>${formatISOTimestamp(exp.end)}</td>`;
                 editRow.innerHTML += `<td>
-                        <button type="button" onclick="hideEditRow('${name}')">Cancel</button>
-                        <button type="button" onclick="saveExperiment('${name}')">Save</button>
+                        <button type="button" onclick="hideEditRow('${row.id}', '${editRow.id}')">Cancel</button>
+                        <button type="button" onclick="saveExperiment('${editRow.id}', '${name}')">Save</button>
                     </td>
                 `;
                 table.appendChild(editRow);
@@ -249,19 +260,20 @@ EXPERIMENTS_TEMPLATE = """
             container.appendChild(table);
         }
 
-        function showEditRow(name) {
-            document.getElementById("row-" + name).style.display = "none";
-            document.getElementById("edit-" + name).classList.remove("hidden");
+        function showEditRow(rowId, editRowId) {
+            document.getElementById(rowId).style.display = "none";
+            document.getElementById(editRowId).classList.remove("hidden");
         }
 
-        function hideEditRow(name) {
-            document.getElementById("edit-" + name).classList.add("hidden");
-            document.getElementById("row-" + name).style.display = "";
+        function hideEditRow(rowId, editRowId) {
+            document.getElementById(editRowId).classList.add("hidden");
+            document.getElementById(rowId).style.display = "";
         }
 
-        function onStateChange(name) {
-            const stateSelect = document.getElementById(`stateselect-${name}`);
-            const groupSelect = document.getElementById(`rollout-groups-${name}`);
+        function onStateChange(editRowId) {
+            const editRow = document.getElementById(editRowId);
+            const stateSelect = editRow.querySelector('select.stateselect');
+            const groupSelect = editRow.querySelector('select.rollout-groups');
             if (stateSelect.value === "rollout") {
                 groupSelect.classList.remove("hidden");
             } else {
@@ -269,17 +281,20 @@ EXPERIMENTS_TEMPLATE = """
             }
         }
 
-        function saveExperiment(name) {
-            const editRow = document.getElementById("edit-" + name);
-            const groupNames = [...editRow.querySelectorAll('span.groupname')].map(i => i.textContent);
-            const groupSplits = [...editRow.querySelectorAll('input[name="group_split"]')].map(i => parseInt(i.value));
+        function saveExperiment(editRowId, name) {
+            const editRow = document.getElementById(editRowId);
+            const weights = editRow.querySelectorAll('input.weights');
             const groups = {};
-            groupNames.forEach((g, i) => groups[g] = groupSplits[i]);
-            const stateSelect = editRow.querySelector(`#stateselect-${name}`);
+            weights.forEach(input => {
+                const groupName = input.dataset.group;
+                const splitValue = parseInt(input.value);
+                groups[groupName] = splitValue;
+            });
+            const stateSelect = editRow.querySelector('select.stateselect');
             let state = stateSelect ? stateSelect.value : null;
             let rollout_group = null;
             if (state === "rollout") {
-                const rolloutSelect = editRow.querySelector(`#rollout-groups-${name}`);
+                const rolloutSelect = editRow.querySelector('select.rollout-groups');
                 rollout_group = rolloutSelect.value;
             }
             const payload = {name, groups};
@@ -291,9 +306,16 @@ EXPERIMENTS_TEMPLATE = """
             }
             fetch(`/api/experiments/update`, {
                 method: "POST",
-                headers: { "Content-Type": "application/json" },
+                headers: {"Content-Type": "application/json"},
                 body: JSON.stringify(payload)
             }).then(() => location.reload());
+        }
+
+        function escapeHTML(str) {
+            if (typeof str !== "string") return "";
+            const div = document.createElement("div");
+            div.textContent = str;
+            return div.innerHTML;
         }
 
         function formatISOTimestamp(isoString) {
@@ -350,40 +372,45 @@ def update_experiment():
                            ("inactive", "active"),
                            ("active", "inactive"),
                            ("active", "active"),
-                           ("active", "rollout")]
+                           ("active", "rollout"),
+                           ("rollout", "rollout"),
+                           ("rollout", "active")]
     if not (current_state, new_state) in allowed_transitions:
         return jsonify({"error": f"Can't change state from {current_state} to {new_state}"}), 400
     rollout_group = data.get("rollout_group")
     if new_state == "rollout" and rollout_group not in EXPERIMENTS[name]["groups"]:
         return jsonify({"error": "Invalid rollout group"}), 400
     EXPERIMENTS[name]["state"] = new_state
-    if new_state == "rollout":
-        EXPERIMENTS[name]["rollout_group"] = rollout_group
-        EXPERIMENTS[name]["end"] = datetime.now().isoformat()
-    elif current_state == "inactive" and new_state == "active":
+    if current_state == "inactive" and new_state == "active":
         EXPERIMENTS[name]["start"] = datetime.now().isoformat()
         EXPERIMENTS[name]["end"] = None
     elif current_state == "active" and new_state == "inactive":
         EXPERIMENTS[name]["end"] = datetime.now().isoformat()
+    elif current_state == "active" and new_state == "rollout":
+        EXPERIMENTS[name]["rollout_group"] = rollout_group
+        EXPERIMENTS[name]["end"] = datetime.now().isoformat()
+    elif current_state == "rollout" and new_state == "rollout":
+        EXPERIMENTS[name]["rollout_group"] = rollout_group
+    elif current_state == "rollout" and new_state == "active":
+        EXPERIMENTS[name]["rollout_group"] = None
+        EXPERIMENTS[name]["start"] = datetime.now().isoformat()
+        EXPERIMENTS[name]["end"] = None
     if new_state != "rollout":
-        update_split(data)
-    return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
-
-def update_split(data):
-    name = data.get("name")
-    old_groups = set(EXPERIMENTS[name]["groups"].keys())
-    new_groups = set(data.get("groups", {}).keys())
-    if old_groups == new_groups:
+        old_groups = set(EXPERIMENTS[name]["groups"].keys())
+        new_groups = set(data.get("groups", {}).keys())
+        if old_groups != new_groups:
+            jsonify({"error": f"Can't change {name} split"}), 400
         for g in old_groups:
             EXPERIMENTS[name]["groups"][g] = data["groups"][g]
+    return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
 
 def assign_group(device_id: str, experiment: str) -> str:
     if EXPERIMENTS[experiment]["state"] == "rollout":
         return EXPERIMENTS[experiment]["rollout_group"]
     elif EXPERIMENTS[experiment]["state"] == "inactive":
         return EXPERIMENTS[experiment]["fallback"]
-    if device_id in USERGROUPS and experiment in USERGROUPS[device_id]:
-        gr, ts = USERGROUPS[device_id][experiment]
+    if device_id in ASSIGNEDGROUPS and experiment in ASSIGNEDGROUPS[device_id]:
+        gr, ts = ASSIGNEDGROUPS[device_id][experiment]
         return gr
     groups = EXPERIMENTS[experiment]["groups"]
     total_parts = sum(groups.values())
@@ -398,9 +425,9 @@ def assign_group(device_id: str, experiment: str) -> str:
         if hash_mod < c:
             chosen = group_name
             break
-    if device_id not in USERGROUPS:
-        USERGROUPS[device_id] = {}
-    USERGROUPS[device_id][experiment] = (chosen, datetime.now().isoformat())
+    if device_id not in ASSIGNEDGROUPS:
+        ASSIGNEDGROUPS[device_id] = {}
+    ASSIGNEDGROUPS[device_id][experiment] = (chosen, datetime.now().isoformat())
     return chosen
 
 def post_event(event_name: str, device_id: str, params: dict):
