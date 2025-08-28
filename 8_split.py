@@ -301,8 +301,9 @@ def update_experiment():
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
 
 def assign_group(device_id: str, experiment: str) -> str:
-    if device_id in ASSIGNEDGROUPS and experiment in ASSIGNEDGROUPS[device_id]:
-        return ASSIGNEDGROUPS[device_id][experiment]
+    if (device_id, experiment) in ASSIGNEDGROUPS:
+        gr, ts = ASSIGNEDGROUPS[(device_id, experiment)]
+        return gr
     groups = EXPERIMENTS[experiment]["groups"]
     total_parts = sum(groups.values())
     key = f"{device_id}:{experiment}"
@@ -316,9 +317,7 @@ def assign_group(device_id: str, experiment: str) -> str:
         if hash_mod < c:
             chosen = group_name
             break
-    if device_id not in ASSIGNEDGROUPS:
-        ASSIGNEDGROUPS[device_id] = {}
-    ASSIGNEDGROUPS[device_id][experiment] = chosen
+    ASSIGNEDGROUPS[(device_id, experiment)] = (chosen, datetime.now().isoformat())
     return chosen
 
 def post_event(event_name: str, device_id: str, params: dict):
