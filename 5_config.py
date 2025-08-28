@@ -35,7 +35,7 @@ INDEX_TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     deviceId: deviceId,
-                    source: 'client',
+                    source: 'browser',
                     event: eventName,
                     params: params
                 })
