@@ -15,7 +15,7 @@ and an experiments admin page.*
 &nbsp; &nbsp; *[5. Config](#5-config)*  
 &nbsp; &nbsp; *[6. Multiple Experiments](#6-multiple-experiments)*  
 &nbsp; &nbsp; *[7. Admin Page](#7-admin-page)*  
-&nbsp; &nbsp; *[8. Split](#8-split)*  
+&nbsp; &nbsp; *[8. Weights](#8-weights)*
 &nbsp; &nbsp; *[9. Rollout](#9-rollout)*  
 &nbsp; &nbsp; *[Conclusion](#conclusion)*  
 
@@ -603,8 +603,8 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_int = int.from_bytes(hash_bytes, 'big')
     hash_mod = hash_int % total_parts
     c = 0
-    for group_name, split in sorted(groups.items()):
-        c += split
+    for group_name, weight in sorted(groups.items()):
+        c += weight
         if hash_mod < c:
             return group_name
     return None
@@ -629,7 +629,7 @@ if __name__ == '__main__':
 * `EXPERIMENTS` - server-side storage for experiments.
 * `@app.route('/api/experiments')` - returns experiments info.
 * `@app.route('/api/expgroups')` - returns groups for a given `device_id`.
-* `hash_mod = hash_int % total_parts` - supports multiple groups with arbitrary splits.
+* `hash_mod = hash_int % total_parts` - supports multiple groups with arbitrary weights.
 * `post_event("exp_groups", device_id, result)` - backend sends an analytics event when groups are computed.
 
 The split and conversions are correct.
@@ -759,8 +759,8 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_int = int.from_bytes(hash_bytes, 'big')
     hash_mod = hash_int % total_parts
     c = 0
-    for group_name, split in sorted(groups.items()):
-        c += split
+    for group_name, weight in sorted(groups.items()):
+        c += weight
         if hash_mod < c:
             return group_name
     return None
@@ -812,9 +812,9 @@ Split Independence moon_mars/white_gold_btn:
 
 #### 7. Admin Page
 
-An experiments admin page is added to display experiment configurations.
-Admin functions are added in the next sections.
-In production, it is common to use a dedicated service to manage experiments.
+An experiments configuration page is added,
+with admin functions described later.
+In production, experiments are typically managed by a dedicated service.
 
 ```bash
 python 7_admin.py
@@ -826,7 +826,7 @@ Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroup
 Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
 <p align="center">
-  <img src="https://i.postimg.cc/hDpTHWHH/experiments-admin.png" alt="Experiments Admin" width="800" />
+  <img src="https://i.postimg.cc/W227tVbS/experiments-admin.png" alt="Experiments Admin" width="800" />
 </p>
 
 ```python
@@ -834,14 +834,16 @@ Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/exp
 
 EXPERIMENTS = {
     "moon_mars": {
-        "active": True,
+        "title": "Moon/Mars",
         "groups": {'Moon': 50, 'Mars': 50},
-        "fallback": "Moon"
+        "fallback": "Moon",
+        "state": "active"
     },
     "white_gold_btn": {
-        "active": True,
+        "title": "White/Gold",
         "groups": {'White': 50, 'Gold': 50},
-        "fallback": "White"
+        "fallback": "White",
+        "state": "active"
     }
 }
 
@@ -849,13 +851,9 @@ EXPERIMENTS_TEMPLATE = """
 <!DOCTYPE html>
 <html>
 <head>
-    <title>Experiments Control</title>
+    <title>Experiments</title>
     <style>
-        th, td {
-            text-align: left;
-            padding: 10px;
-            vertical-align: top;
-        }
+        /* ... */
     </style>
 </head>
 <body>
@@ -864,33 +862,30 @@ EXPERIMENTS_TEMPLATE = """
         <thead>
             <tr>
                 <th>Experiment</th>
-                <th>Active</th>
-                <th>Groups: split</th>
+                <th>Key</th>
+                <th>Group: Weight</th>
                 <th>Fallback</th>
-                <th>Toggle</th>
+                <th>State</th>
             </tr>
         </thead>
         <tbody>
         {% for name, exp in experiments.items() %}
             <tr>
+                <td>{{ exp.title }}</td>
                 <td>{{ name }}</td>
-                <td>{{ 'On' if exp.active else 'Off' }}</td>
                 <td>
-                    {% for g, split in exp.groups.items() %}
-                        {{ g }}: {{ split }} <br>
+                    {% for g, w in exp.groups.items() %}
+                        {{ g }}: {{ w }} <br>
                     {% endfor %}
                 </td>
                 <td>{{ exp.fallback }}</td>
-                <td>
-                    <form method="POST" action="/experiments/toggle">
-                        <input type="hidden" name="experiment" value="{{ name }}">
-                        <button type="submit">{{ 'Turn Off' if exp.active else 'Turn On' }}</button>
-                    </form>
-                </td>
+                <td>{{ exp.state }}</td>
             </tr>
         {% endfor %}
         </tbody>
     </table>
+</body>
+</html>
 </body>
 </html>
 """
@@ -902,12 +897,12 @@ def experiments_page():
 # ...
 ```
 
-* `EXPERIMENTS_TEMPLATE` - experiments admin page template
-* `@app.route('/experiments', methods=['GET'])` - serves the experiments page
+* `EXPERIMENTS_TEMPLATE` - experiments admin page template.
+* `@app.route('/experiments', methods=['GET'])` - serves the experiments page.
 
-The change doesn't affect the experiments.
+Experiments remain unaffected by the changes.
 
-#### 8. Split
+#### 8. Weights
 
 Group split changes in active experiments require caution.
 Users receive their experiment groups on each visit, and altering splits may cause them to switch groups.
@@ -917,7 +912,7 @@ To avoid this, previously assigned groups must be stored, either on the client o
 In this example, groups are stored on the backend.
 
 ```bash
-python 8_split.py
+python 8_weights.py
 ```
 Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)

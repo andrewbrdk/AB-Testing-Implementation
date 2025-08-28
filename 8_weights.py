@@ -137,10 +137,10 @@ EXPERIMENTS_TEMPLATE = """
             padding: 10px 3px;
             vertical-align: top;
         }
-        .split-row {
+        .group-weight {
             padding: 2px;
         }
-        .split-row input {
+        .group-weight input {
             width: 60px;
             text-align: right;
             border: none;
@@ -169,7 +169,7 @@ EXPERIMENTS_TEMPLATE = """
                 <tr>
                     <th>Experiment</th>
                     <th>Key</th>
-                    <th>Groups: Split</th>
+                    <th>Group: Weight</th>
                     <th>Fallback</th>
                     <th>State</th>
                     <th></th>
@@ -183,8 +183,8 @@ EXPERIMENTS_TEMPLATE = """
                 row.innerHTML = `<td>${escapeHTML(exp.title)}</td>`;
                 row.innerHTML += `<td>${escapeHTML(name)}</td>`;
                 let groups = "";
-                for (const [g, split] of Object.entries(exp.groups)) {
-                    groups += `<div class="split-row">${escapeHTML(g)}: ${split}</div>`;
+                for (const [g, w] of Object.entries(exp.groups)) {
+                    groups += `<div class="group-weight">${escapeHTML(g)}: ${w}</div>`;
                 }
                 row.innerHTML += `<td>${groups}</td>`;
                 row.innerHTML += `
@@ -202,10 +202,10 @@ EXPERIMENTS_TEMPLATE = """
                 editRow.innerHTML = `<td>${escapeHTML(exp.title)}</td>`;
                 editRow.innerHTML += `<td>${escapeHTML(name)}</td>`;
                 groups = "";
-                for (const [g, split] of Object.entries(exp.groups)) {
-                    groups += `<div class="split-row">
+                for (const [g, w] of Object.entries(exp.groups)) {
+                    groups += `<div class="group-weight">
                         <span class="groupname">${escapeHTML(g)}</span>:
-                        <input type="number" class="weights" data-group="${g}" value="${split}">
+                        <input type="number" class="weights" data-group="${g}" value="${w}">
                     </div>`;
                 }
                 editRow.innerHTML += `<td>${groups}</td>`;
@@ -239,8 +239,8 @@ EXPERIMENTS_TEMPLATE = """
             const groups = {};
             weights.forEach(input => {
                 const groupName = input.dataset.group;
-                const splitValue = parseInt(input.value);
-                groups[groupName] = splitValue;
+                const weight = parseInt(input.value);
+                groups[groupName] = weight;
             });
             const payload = {name, groups};
             fetch(`/api/experiments/update`, {
@@ -295,7 +295,7 @@ def update_experiment():
     old_groups = set(EXPERIMENTS[name]["groups"].keys())
     new_groups = set(data.get("groups", {}).keys())
     if old_groups != new_groups:
-        jsonify({"error": f"Can't change {name} split"}), 400
+        jsonify({"error": f"Can't change {name} group weights"}), 400
     for g in old_groups:
         EXPERIMENTS[name]["groups"][g] = data["groups"][g]
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
@@ -312,8 +312,8 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_mod = hash_int % total_parts
     c = 0
     chosen = EXPERIMENTS[experiment]["fallback"]
-    for group_name, split in sorted(groups.items()):
-        c += split
+    for group_name, weight in sorted(groups.items()):
+        c += weight
         if hash_mod < c:
             chosen = group_name
             break

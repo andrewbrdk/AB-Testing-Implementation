@@ -144,7 +144,7 @@ EXPERIMENTS_TEMPLATE = """
             <tr>
                 <th>Experiment</th>
                 <th>Key</th>
-                <th>Groups: Split</th>
+                <th>Group: Weight</th>
                 <th>Fallback</th>
                 <th>State</th>
             </tr>
@@ -155,8 +155,8 @@ EXPERIMENTS_TEMPLATE = """
                 <td>{{ exp.title }}</td>
                 <td>{{ name }}</td>
                 <td>
-                    {% for g, split in exp.groups.items() %}
-                        {{ g }}: {{ split }} <br>
+                    {% for g, w in exp.groups.items() %}
+                        {{ g }}: {{ w }} <br>
                     {% endfor %}
                 </td>
                 <td>{{ exp.fallback }}</td>
@@ -202,8 +202,8 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_int = int.from_bytes(hash_bytes, 'big')
     hash_mod = hash_int % total_parts
     c = 0
-    for group_name, split in sorted(groups.items()):
-        c += split
+    for group_name, weight in sorted(groups.items()):
+        c += weight
         if hash_mod < c:
             return group_name
     return None

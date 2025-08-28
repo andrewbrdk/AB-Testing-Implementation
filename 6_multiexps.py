@@ -139,8 +139,8 @@ def assign_group(device_id: str, experiment: str) -> str:
     hash_int = int.from_bytes(hash_bytes, 'big')
     hash_mod = hash_int % total_parts
     c = 0
-    for group_name, split in sorted(groups.items()):
-        c += split
+    for group_name, weight in sorted(groups.items()):
+        c += weight
         if hash_mod < c:
             return group_name
     return None
