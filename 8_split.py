@@ -35,7 +35,7 @@ INDEX_TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     deviceId: deviceId,
-                    source: 'client',
+                    source: 'browser',
                     event: eventName,
                     params: params
                 })
@@ -114,7 +114,7 @@ EXPERIMENTS = {
     }
 }
 
-USERGROUPS = {}
+ASSIGNEDGROUPS = {}
 
 EXPERIMENTS_TEMPLATE = """
 <!DOCTYPE html>
@@ -122,20 +122,23 @@ EXPERIMENTS_TEMPLATE = """
 <head>
     <title>Experiments</title>
     <style>
+        body {
+            margin: 0 3vw;
+            font-family: sans-serif;
+        }
         table {
             border-collapse: collapse;
+            width: 100%;
+            margin: 0;
+            padding: 0;
         }
         th, td {
             text-align: left;
-            padding: 10px;
+            padding: 10px 3px;
             vertical-align: top;
         }
         .split-row {
-            display: flex;
-            justify-content: space-between;
-            gap: 8px;
-            padding: 4px;
-            align-items: center;
+            padding: 2px;
         }
         .split-row input {
             width: 60px;
@@ -165,6 +168,7 @@ EXPERIMENTS_TEMPLATE = """
             table.innerHTML += `
                 <tr>
                     <th>Experiment</th>
+                    <th>Key</th>
                     <th>Groups: Split</th>
                     <th>Fallback</th>
                     <th>State</th>
@@ -175,6 +179,7 @@ EXPERIMENTS_TEMPLATE = """
                 const row = document.createElement('tr');
                 row.id = "row-" + name;
                 row.innerHTML = `<td>${exp.title}</td>`;
+                row.innerHTML += `<td>${name}</td>`;
                 let groups = "";
                 for (const [g, split] of Object.entries(exp.groups)) {
                     groups += `<div class="split-row">${g}: ${split}</div>`;
@@ -193,6 +198,7 @@ EXPERIMENTS_TEMPLATE = """
                 editRow.classList.add("hidden");
                 editRow.style.background = "#f9f9f9";
                 editRow.innerHTML = `<td>${exp.title}</td>`
+                editRow.innerHTML += `<td>${name}</td>`
                 groups = "";
                 for (const [g, split] of Object.entries(exp.groups)) {
                     groups += `<div class="split-row">
@@ -288,8 +294,8 @@ def update_experiment():
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
 
 def assign_group(device_id: str, experiment: str) -> str:
-    if device_id in USERGROUPS and experiment in USERGROUPS[device_id]:
-        return USERGROUPS[device_id][experiment]
+    if device_id in ASSIGNEDGROUPS and experiment in ASSIGNEDGROUPS[device_id]:
+        return ASSIGNEDGROUPS[device_id][experiment]
     groups = EXPERIMENTS[experiment]["groups"]
     total_parts = sum(groups.values())
     key = f"{device_id}:{experiment}"
@@ -303,9 +309,9 @@ def assign_group(device_id: str, experiment: str) -> str:
         if hash_mod < c:
             chosen = group_name
             break
-    if device_id not in USERGROUPS:
-        USERGROUPS[device_id] = {}
-    USERGROUPS[device_id][experiment] = chosen
+    if device_id not in ASSIGNEDGROUPS:
+        ASSIGNEDGROUPS[device_id] = {}
+    ASSIGNEDGROUPS[device_id][experiment] = chosen
     return chosen
 
 def post_event(event_name: str, device_id: str, params: dict):

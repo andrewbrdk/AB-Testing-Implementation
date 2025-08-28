@@ -35,7 +35,7 @@ INDEX_TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     deviceId: deviceId,
-                    source: 'client',
+                    source: 'browser',
                     event: eventName,
                     params: params
                 })
@@ -120,9 +120,19 @@ EXPERIMENTS_TEMPLATE = """
 <head>
     <title>Experiments</title>
     <style>
+        body {
+            margin: 0 3vw;
+            font-family: sans-serif;
+        }
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            margin: 0;
+            padding: 0;
+        }
         th, td {
             text-align: left;
-            padding: 10px;
+            padding: 10px 3px;
             vertical-align: top;
         }
     </style>
@@ -133,6 +143,7 @@ EXPERIMENTS_TEMPLATE = """
         <thead>
             <tr>
                 <th>Experiment</th>
+                <th>Key</th>
                 <th>Groups: Split</th>
                 <th>Fallback</th>
                 <th>State</th>
@@ -142,6 +153,7 @@ EXPERIMENTS_TEMPLATE = """
         {% for name, exp in experiments.items() %}
             <tr>
                 <td>{{ exp.title }}</td>
+                <td>{{ name }}</td>
                 <td>
                     {% for g, split in exp.groups.items() %}
                         {{ g }}: {{ split }} <br>
