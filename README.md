@@ -915,10 +915,10 @@ In this example, groups are stored on the backend in the `ASSIGNEDGROUPS` variab
 ```bash
 python 8_weights.py
 ```
-Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
-Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
-Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)
-Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)
+Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
+Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
+Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)  
+Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)  
 Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
 
 <p align="center">
@@ -1017,11 +1017,11 @@ Inactive to rollout transitions are not allowed.
 ```bash
 python 9_rollout.py
 ```
-Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
-Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
-Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)
-Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)
-Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)
+Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)  
+Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)  
+Experiments: [http://127.0.0.1:5000/api/experiments](http://127.0.0.1:5000/api/experiments)  
+Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroups)  
+Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/experiments)  
 
 <p align="center">
   <img src="https://i.postimg.cc/WjxFJzK1/rollout.png" alt="Rollout" width="800" />
