@@ -455,10 +455,9 @@ Moon: 512 visits, 47 clicks, Conv=9.18 +- 2.55%, Exact: 10.00%
 
 #### 5. Config
 
-An experiment config defines groups with weights,
-a fallback group, and an active/inactive status.
-It can extend to multiple experiments with arbitrary group splits.
-Clients retrieve their groups from the server.
+A config defines experiments, their groups, weights, a fallback group, and state. 
+It can include multiple experiments with arbitrary group weights. 
+Clients retrieve assigned groups from the server.
 
 ```bash
 python 5_config.py
@@ -470,48 +469,19 @@ Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroup
 
 
 ```python
-from flask import Flask, request, make_response, render_template_string, jsonify
-import uuid
-import hashlib
-from datetime import datetime
-
-app = Flask(__name__)
+# ...
 
 INDEX_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
-</head>
+// ...
 <body>
     <div id="variant-container">Loading...</div>
 
     <script>
-        function getCookie(name) {
-            const value = `; ${document.cookie}`;
-            const parts = value.split(`; ${name}=`);
-            if (parts.length === 2) return parts.pop().split(';').shift();
-        }
+        // ...
 
         async function getExpGroups(deviceId) {
             const res = await fetch(`/api/expgroups?device_id=${deviceId}`);
             return await res.json();
-        }
-
-        async function sendEvent(eventName, params = {}) {
-            let ts = new Date().toISOString();
-            await fetch('/events', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    ts: ts,
-                    deviceId: deviceId,
-                    source: 'client',
-                    event: eventName,
-                    params: params
-                })
-            });
         }
 
         async function renderPage() {
@@ -556,22 +526,13 @@ def index():
     response.set_cookie("device_id", device_id, max_age=60*60*24*365)
     return response
 
-EVENTS = []
-
-@app.route('/events', methods=['GET', 'POST'])
-def events():
-    if request.method == 'POST':
-        data = request.json
-        EVENTS.append(data)
-        return jsonify({"status": "ok"})
-    else:
-        return jsonify(EVENTS)
+# ...
 
 EXPERIMENTS = {
     "moon_mars": {
-        "active": True,
         "groups": {'Moon': 50, 'Mars': 50},
-        "fallback": "Moon"
+        "fallback": "Moon",
+        "state": "active",
     }
 }
 
@@ -586,10 +547,9 @@ def api_expgroups():
     for exp_name, info in EXPERIMENTS.items():
         group = assign_group(device_id, exp_name) if device_id else ""
         result[exp_name] = {
-            "active": info["active"],
+            "state": info["state"],
             "fallback": info["fallback"],
-            "assigned": group,
-            "group": group if info["active"] else info["fallback"]
+            "group": group
         }
     if device_id:
         post_event("exp_groups", device_id, result)
@@ -628,11 +588,12 @@ if __name__ == '__main__':
 
 * `async function getExpGroups(deviceId)` - fetches the experiment groups for a device.
 * `if (exp.group === "Moon") { ... }` - determines which variant to render.
+* `def index()` - no longer sets the "exp_group" cookie.
 * `EXPERIMENTS` - server-side storage for experiments.
 * `@app.route('/api/experiments')` - returns experiments info.
 * `@app.route('/api/expgroups')` - returns groups for a given `device_id`.
 * `hash_mod = hash_int % total_parts` - supports multiple groups with arbitrary weights.
-* `post_event("exp_groups", device_id, result)` - backend sends an analytics event when groups are computed.
+* `post_event("exp_groups", device_id, result)` - backend sends an analytics event when a group is assigned.
 
 The split and conversions are correct.
 
@@ -670,17 +631,12 @@ Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroup
 # ...
 
 INDEX_TEMPLATE = """
-<!DOCTYPE html>
-<html>
-<head>
-    <title>A/B Test</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='banners.css') }}">
-</head>
+// ...
 <body>
     <div id="variant-container">Loading...</div>
 
     <script>
-        /* ... */
+        // ...
 
         async function getExpGroups(deviceId) {
             const res = await fetch(`/api/expgroups?device_id=${deviceId}`);
@@ -716,7 +672,7 @@ INDEX_TEMPLATE = """
             }
         }
 
-        /* ... */
+        // ...
     </script>
 </body>
 </html>
@@ -901,15 +857,14 @@ def experiments_page():
 * `EXPERIMENTS_TEMPLATE` - experiments admin page template.
 * `@app.route('/experiments', methods=['GET'])` - serves the experiments page.
 
-Experiments remain unaffected by the changes.
+Experiments are unaffected by the changes.
 
 #### 8. Weights
 
-Changing group weights in active experiments may result in users switching groups.
-Users receive their experiment groups on each visit.
-While `hash(user_id || exp_name) % n_groups` remains constant, its mapping to groups depends on the weights.
-On weights change, users may be reassigned inconsistently.
-To avoid this, previously assigned groups must be stored.
+Changing group weights in active experiments can cause users to switch groups.
+While `hash(user_id || exp_name) % n_groups` stays constant,
+its mapping to groups depends on the weights.
+To prevent inconsistency, previously assigned groups must be stored.
 In this example, groups are stored on the backend in the `ASSIGNEDGROUPS` variable.
 
 ```bash
@@ -927,6 +882,13 @@ Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/exp
 
 ```python
 # ...
+
+EXPERIMENTS_TEMPLATE = """
+    // ...
+    fetchExperiments().then(renderExperiments);
+    // ...
+"""
+
 ASSIGNEDGROUPS = {}
 
 def assign_group(device_id: str, experiment: str) -> str:
@@ -974,11 +936,11 @@ def update_experiment():
 #...
 ```
 
+* `EXPERIMENTS_TEMPLATE` is modified to support weights update.
 * `ASSIGNEDGROUPS = {}` - stores assigned groups.
-* `if (device_id, experiment) in ASSIGNEDGROUPS: ...` - checks an already assigned group, returns it if exists.
-* `ASSIGNEDGROUPS[(device_id, experiment)] = (chosen, datetime.now().isoformat())` - saves the assigned group and timestamp.
-* `@app.route('/api/experiments/update', methods=['POST'])` - updates experiment weights.
-* `EXPERIMENTS_TEMPLATE` is changed to support weights change.
+* `if (device_id, experiment) in ASSIGNEDGROUPS: ...` - returns the assigned group if it exists.
+* `ASSIGNEDGROUPS[(device_id, experiment)] = (chosen, datetime.now().isoformat())` - saves the group and assignment time.
+* `@app.route('/api/experiments/update', methods=['POST'])` - updates group weights.
 
 Traffic split follows changes in config.
 ```bash
@@ -1010,17 +972,23 @@ Split Independence moon_mars/white_gold_btn:
 #### 9. Rollout
 
 Experiments have three states: inactive, active, and rollout.
-Inactive experiments serve the fallback variant, and no groups are recorded.
-Active experiments assign users to groups according to the weights,
-with assignments stored in `ASSIGNEDGROUPS`.
+Inactive experiments serve the fallback with no groups recorded.
+Active experiments assign users to groups and record assignments in `ASSIGNEDGROUPS`.
 In rollout, all users receive a chosen rollout group;
 stored assignments are ignored, and new ones are not recorded.
 
-Transitioning from inactive to active records the start time and assigns groups to new users.
+Transitioning from inactive to active records the experiment start time.
 Active to rollout requires selecting a rollout group and records the end time.
-Active to inactive may be used for bug fixes: all users receive the fallback, assignments remain stored, and after reactivation previously assigned users keep their variants but should be excluded from analysis; only new assignments should be included.
-Rollout to active is treated as a restart: earlier groups persist but should be excluded from analysis.
-Inactive to rollout transitions are not allowed.
+Active to inactive may be used for bug fixes:
+all users are switched to the fallback variant.
+Stored assignments persist, and after reactivation,
+previously assigned users keep their variants.
+Users who experienced group switches should be excluded from analysis.
+Excluding users based on group assignment introduces bias,
+so it is safer to discard all previous statistics and include only newly assigned users.
+Rollout to active is treated as a restart:
+previously assigned users should be excluded from analysis in the same way as active-inactive.
+Inactive to rollout is not allowed.
 
 ```bash
 python 9_rollout.py
@@ -1037,6 +1005,7 @@ Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/exp
 
 ```python
 # ...
+
 EXPERIMENTS = {
     "moon_mars": {
         "title": "Moon/Mars",
@@ -1057,6 +1026,30 @@ EXPERIMENTS = {
         "end": None
     }
 }
+
+def assign_group(device_id: str, experiment: str) -> str:
+    if EXPERIMENTS[experiment]["state"] == "rollout":
+        return EXPERIMENTS[experiment]["rollout_group"]
+    elif EXPERIMENTS[experiment]["state"] == "inactive":
+        return EXPERIMENTS[experiment]["fallback"]
+    if (device_id, experiment) in ASSIGNEDGROUPS:
+        gr, ts = ASSIGNEDGROUPS[(device_id, experiment)]
+        return gr
+    groups = EXPERIMENTS[experiment]["groups"]
+    total_parts = sum(groups.values())
+    key = f"{device_id}:{experiment}"
+    hash_bytes = hashlib.sha256(key.encode()).digest()
+    hash_int = int.from_bytes(hash_bytes, 'big')
+    hash_mod = hash_int % total_parts
+    c = 0
+    chosen = EXPERIMENTS[experiment]["fallback"]
+    for group_name, weight in sorted(groups.items()):
+        c += weight
+        if hash_mod < c:
+            chosen = group_name
+            break
+    ASSIGNEDGROUPS[(device_id, experiment)] = (chosen, datetime.now().isoformat())
+    return chosen
 
 @app.route('/api/experiments/update', methods=['POST'])
 def update_experiment():
@@ -1110,35 +1103,14 @@ def update_experiment():
             EXPERIMENTS[name]["groups"][g] = data["groups"][g]
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
 
-def assign_group(device_id: str, experiment: str) -> str:
-    if EXPERIMENTS[experiment]["state"] == "rollout":
-        return EXPERIMENTS[experiment]["rollout_group"]
-    elif EXPERIMENTS[experiment]["state"] == "inactive":
-        return EXPERIMENTS[experiment]["fallback"]
-    if (device_id, experiment) in ASSIGNEDGROUPS:
-        gr, ts = ASSIGNEDGROUPS[(device_id, experiment)]
-        return gr
-    groups = EXPERIMENTS[experiment]["groups"]
-    total_parts = sum(groups.values())
-    key = f"{device_id}:{experiment}"
-    hash_bytes = hashlib.sha256(key.encode()).digest()
-    hash_int = int.from_bytes(hash_bytes, 'big')
-    hash_mod = hash_int % total_parts
-    c = 0
-    chosen = EXPERIMENTS[experiment]["fallback"]
-    for group_name, weight in sorted(groups.items()):
-        c += weight
-        if hash_mod < c:
-            chosen = group_name
-            break
-    ASSIGNEDGROUPS[(device_id, experiment)] = (chosen, datetime.now().isoformat())
-    return chosen
 # ...
 ```
 
-* `EXPERIMENTS = {... {..."state": "active",...}...}` - experiments have states, rollout groups and start/end time.
-* `def update_experiment()` - updates state and weights from the admin page.
-* `def assign_group(...)` - returns fallback for inactive experiments, rollout_group for rollout. For active experiments first checks already assigned groups. In none found, assigns one.
+* `EXPERIMENTS = {... {..."state": "active",...}...}` - stores experiment state, rollout group, and start/end times.
+* `def assign_group(...)` - returns fallback for inactive experiments,
+the rollout group for rollout, and for active experiments
+checks stored assignments or creates a new one.
+* `def update_experiment()` - updates experiment state and group weights from the admin page.
 
 Traffic split follows changes in config.
 TODO: update exact conv. Add exact split.
