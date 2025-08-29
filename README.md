@@ -959,6 +959,14 @@ def update_experiment():
     new_groups = set(data.get("groups", {}).keys())
     if old_groups != new_groups:
         jsonify({"error": f"Can't change {name} group weights"}), 400
+    for g, w in data["groups"].items():
+        try:
+            w_int = int(w)
+        except Exception as e:
+            return jsonify({"error": f"Invalid weight for group '{g}': must be an integer"}), 400
+        if w_int <= 0:
+            return jsonify({"error": f"Invalid weight for group '{g}': must be > 0"}), 400
+        data["groups"][g] = w_int
     for g in old_groups:
         EXPERIMENTS[name]["groups"][g] = data["groups"][g]
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
@@ -1090,6 +1098,14 @@ def update_experiment():
         new_groups = set(data.get("groups", {}).keys())
         if old_groups != new_groups:
             jsonify({"error": f"Can't change {name} group weights"}), 400
+        for g, w in data["groups"].items():
+            try:
+                w_int = int(w)
+            except Exception as e:
+                return jsonify({"error": f"Invalid weight for group '{g}': must be an integer"}), 400
+            if w_int <= 0:
+                return jsonify({"error": f"Invalid weight for group '{g}': must be > 0"}), 400
+            data["groups"][g] = w_int
         for g in old_groups:
             EXPERIMENTS[name]["groups"][g] = data["groups"][g]
     return jsonify({"success": True, "experiment": EXPERIMENTS[name]})
