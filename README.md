@@ -118,8 +118,8 @@ and the group split is close to the expected 50/50.
 > python simulate_visits.py -n 1000
 
 Moon/Mars Exp Split:
-Mars: 493 visits (49.30%)
-Moon: 507 visits (50.70%)
+Mars: 488 visits (48.80%), Exact 50.00%
+Moon: 512 visits (51.20%), Exact 50.00%
 ```
 
 #### 2. Hashing
@@ -201,8 +201,8 @@ The split between groups is uniform.
 > python simulate_visits.py -n 1000
 
 Moon/Mars Exp Split:
-Mars: 499 visits (49.90%)
-Moon: 501 visits (50.10%)
+Mars: 507 visits (50.70%), Exact 50.00%
+Moon: 493 visits (49.30%), Exact 50.00%
 ```
 
 #### 3. Frontend
@@ -301,8 +301,8 @@ The split is correct.
 > python simulate_visits.py -n 1000
 
 Moon/Mars Exp Split:
-Mars: 511 visits (51.10%)
-Moon: 489 visits (48.90%)
+Mars: 502 visits (50.20%), Exact 50.00%
+Moon: 498 visits (49.80%), Exact 50.00%
 ```
 
 #### 4. Events
@@ -444,12 +444,12 @@ Conversions measured from these events are compared to the `CLICK_PROBS` values.
 > python simulate_visits.py -n 1000
 
 Moon/Mars Exp Split:
-Mars: 488 visits (48.80%)
-Moon: 512 visits (51.20%)
+Mars: 490 visits (49.00%), Exact 50.00%
+Moon: 510 visits (51.00%), Exact 50.00%
 
 Moon/Mars Exp events:
-Mars: 488 visits, 92 clicks, Conv=18.85 +- 3.54%, Exact: 20.00%
-Moon: 512 visits, 47 clicks, Conv=9.18 +- 2.55%, Exact: 10.00%
+Mars: 490 visits, 95 clicks, Conv=19.39 +- 3.57%, Exact: 20.00%
+Moon: 510 visits, 51 clicks, Conv=10.00 +- 2.66%, Exact: 10.00%
 ```
 
 
@@ -601,12 +601,12 @@ The split and conversions are correct.
 > python simulate_visits.py -n 1000
 
 Moon/Mars Exp Split:
-Mars: 489 visits (48.90%)
-Moon: 511 visits (51.10%)
+Mars: 492 visits (49.20%), Exact 50.00%
+Moon: 508 visits (50.80%), Exact 50.00%
 
 Moon/Mars Exp events:
-Mars: 489 visits, 104 clicks, Conv=21.27 +- 3.70%, Exact: 20.00%
-Moon: 511 visits, 52 clicks, Conv=10.18 +- 2.67%, Exact: 10.00%
+Mars: 492 visits, 111 clicks, Conv=22.56 +- 3.77%, Exact: 20.00%
+Moon: 508 visits, 55 clicks, Conv=10.83 +- 2.76%, Exact: 10.00%
 ```
 
 
@@ -747,26 +747,26 @@ is also confirmed.
 > python simulate_visits.py -n 1000
 
 Moon/Mars Exp Split:
-Mars: 520 visits (52.00%)
-Moon: 480 visits (48.00%)
+Mars: 502 visits (50.20%), Exact 50.00%
+Moon: 498 visits (49.80%), Exact 50.00%
 
 White/Gold Exp Split:
-Gold: 520 visits (52.00%)
-White: 480 visits (48.00%)
+Gold: 478 visits (47.80%), Exact 50.00%
+White: 522 visits (52.20%), Exact 50.00%
 
 Moon/Mars Exp events:
-Mars: 520 visits, 104 clicks, Conv=20.00 +- 3.51%, Exact: 20.00%
-Moon: 480 visits, 45 clicks, Conv=9.38 +- 2.66%, Exact: 10.00%
+Mars: 502 visits, 103 clicks, Conv=20.52 +- 3.60%, Exact: 20.00%
+Moon: 498 visits, 44 clicks, Conv=8.84 +- 2.54%, Exact: 10.00%
 
 White/Gold Exp events:
-Gold: 520 visits, 80 clicks, Conv=15.38 +- 3.16%, Exact: 15.00%
-White: 480 visits, 69 clicks, Conv=14.37 +- 3.20%, Exact: 15.00%
+Gold: 478 visits, 71 clicks, Conv=14.85 +- 3.25%, Exact: 15.00%
+White: 522 visits, 76 clicks, Conv=14.56 +- 3.09%, Exact: 15.00%
 
 Split Independence moon_mars/white_gold_btn:
-('Mars', 'Gold'): 27.70%, independence 25.00%
-('Mars', 'White'): 24.30%, independence 25.00%
-('Moon', 'Gold'): 24.30%, independence 25.00%
-('Moon', 'White'): 23.70%, independence 25.00%
+('Mars', 'Gold'): 24.00%, independence 25.00%
+('Mars', 'White'): 26.20%, independence 25.00%
+('Moon', 'Gold'): 23.80%, independence 25.00%
+('Moon', 'White'): 26.00%, independence 25.00%
 ```
 
 
@@ -947,26 +947,26 @@ Traffic split follows changes in config.
 > python simulate_visits.py -n 1000
 
 Moon/Mars Exp Split:
-Mars: 240 visits (24.00%)
-Moon: 760 visits (76.00%)
+Mars: 238 visits (23.80%), Exact 25.00%
+Moon: 762 visits (76.20%), Exact 75.00%
 
 White/Gold Exp Split:
-Gold: 512 visits (51.20%)
-White: 488 visits (48.80%)
+Gold: 505 visits (50.50%), Exact 50.00%
+White: 495 visits (49.50%), Exact 50.00%
 
 Moon/Mars Exp events:
-Mars: 240 visits, 56 clicks, Conv=23.33 +- 5.46%, Exact: 20.00%
-Moon: 760 visits, 75 clicks, Conv=9.87 +- 2.16%, Exact: 10.00%
+Mars: 238 visits, 52 clicks, Conv=21.85 +- 5.36%, Exact: 20.00%
+Moon: 762 visits, 81 clicks, Conv=10.63 +- 2.23%, Exact: 10.00%
 
 White/Gold Exp events:
-Gold: 512 visits, 72 clicks, Conv=14.06 +- 3.07%, Exact: 10.00%
-White: 488 visits, 59 clicks, Conv=12.09 +- 2.95%, Exact: 10.00%
+Gold: 505 visits, 68 clicks, Conv=13.47 +- 3.04%, Exact: 12.50%
+White: 495 visits, 65 clicks, Conv=13.13 +- 3.04%, Exact: 12.50%
 
 Split Independence moon_mars/white_gold_btn:
-('Mars', 'Gold'): 13.20%, independence 12.50%
-('Mars', 'White'): 10.80%, independence 12.50%
-('Moon', 'Gold'): 38.00%, independence 37.50%
-('Moon', 'White'): 38.00%, independence 37.50%
+('Mars', 'Gold'): 11.60%, independence 12.50%
+('Mars', 'White'): 12.20%, independence 12.50%
+('Moon', 'Gold'): 38.90%, independence 37.50%
+('Moon', 'White'): 37.30%, independence 37.50%
 ```
 
 #### 9. Rollout
@@ -1112,29 +1112,27 @@ the rollout group for rollout, and for active experiments
 checks stored assignments or creates a new one.
 * `def update_experiment()` - updates experiment state and group weights from the admin page.
 
-Traffic split follows changes in config.
-TODO: update exact conv. Add exact split.
+The "White/Gold" experiment serves only the selected rollout group.
 ```bash
 > python simulate_visits.py -n 1000
 
 Moon/Mars Exp Split:
-Mars: 487 visits (48.70%)
-Moon: 513 visits (51.30%)
+Mars: 472 visits (47.20%), Exact 50.00%
+Moon: 528 visits (52.80%), Exact 50.00%
 
 White/Gold Exp Split:
-White: 1000 visits (100.00%)
+White: 1000 visits (100.00%), Exact 100.00%
 
 Moon/Mars Exp events:
-Mars: 487 visits, 97 clicks, Conv=19.92 +- 3.62%, Exact: 20.00%
-Moon: 513 visits, 48 clicks, Conv=9.36 +- 2.57%, Exact: 10.00%
+Mars: 472 visits, 109 clicks, Conv=23.09 +- 3.88%, Exact: 20.00%
+Moon: 528 visits, 54 clicks, Conv=10.23 +- 2.64%, Exact: 10.00%
 
-#todo: update exact Conv
 White/Gold Exp events:
-White: 1000 visits, 145 clicks, Conv=14.50 +- 2.23%, Exact: 10.00%
+White: 1000 visits, 163 clicks, Conv=16.30 +- 2.34%, Exact: 15.00%
 
 Split Independence moon_mars/white_gold_btn:
-('Mars', 'White'): 48.70%, independence 50.00%
-('Moon', 'White'): 51.30%, independence 50.00%
+('Mars', 'White'): 47.20%, independence 50.00%
+('Moon', 'White'): 52.80%, independence 50.00%
 ```
 
 #### Conclusion
