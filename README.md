@@ -99,10 +99,10 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
-* `{% if variant == 'Moon' %} ... {% endif %}` - the backend serves the variant corresponding to the experiment group.
-* `variant = request.cookies.get('variant')` - check for existing variant cookie.
-* `variant = random.choice(['Moon', 'Mars'])` - assign random variant if none.
-* `response.set_cookie('variant', variant, max_age=60*60*24*30)` - save variant in cookie for consistency.
+* `{% if variant == 'Moon' %} ... {% endif %}` - backend serves the variant based on the experiment group.
+* `variant = request.cookies.get('variant')` - checks for existing variant cookie.
+* `variant = random.choice(['Moon', 'Mars'])` - assigns random variant if none.
+* `response.set_cookie('variant', variant, max_age=60*60*24*30)` - saves variant in cookie for consistency.
 
 To view a different page variant, open the page in a new incognito window or 
 clear cookies and refresh the page.
@@ -190,10 +190,10 @@ if __name__ == '__main__':
     app.run(debug=True)
 ```
 
-* `device_id = str(uuid.uuid4())` - generate a unique ID for new visitors.
-* `variant = assign_group(device_id, EXPERIMENT_NAME)` - determine experiment group.
-* `key = f"{device_id}:{experiment}"` - concatenate ID and experiment name to compute group.
-* `response.set_cookie("device_id", device_id, max_age=60*60*24*365)` - store `device_id` in cookies.
+* `device_id = str(uuid.uuid4())` - generates a unique ID for new visitors.
+* `variant = assign_group(device_id, EXPERIMENT_NAME)` - determines experiment group.
+* `key = f"{device_id}:{experiment}"` - concatenates ID and experiment name to compute group.
+* `response.set_cookie("device_id", device_id, max_age=60*60*24*365)` - stores `device_id` in cookies.
 
 The split between groups is uniform.
 

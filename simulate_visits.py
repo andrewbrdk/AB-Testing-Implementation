@@ -67,6 +67,22 @@ async def fetch_experiments():
     except Exception as e:
         return None
 
+def normalized_weights(exp):
+    groups = exp.get("groups", {})
+    state = exp.get("state")
+    if state == "inactive":
+        normalized = {g: 0 for g, w in groups.items()}
+        normalized[exp.get('fallback')] = 1
+    elif state == "active":
+        total = sum(groups.values())
+        normalized = {g: w / total for g, w in groups.items()}
+    elif state == "rollout":
+        normalized = {g: 0 for g, w in groups.items()}
+        normalized[exp.get("rollout_group")] = 1
+    else:
+        normalized = None
+    return normalized
+
 async def count_exp_visits_clicks(exp_name):
     visits, clicks = Counter(), Counter()
     events = await fetch_events()
@@ -90,31 +106,15 @@ def ctr_ci(v, c):
     return ctr, ci
 
 async def check_split_independence(exp1, exp2):
-    exps = await fetch_experiments()
-    if exps is None:
+    exps = await fetch_experiments() or {}
+    exp1_weights = normalized_weights(exps.get(exp1, {}))
+    exp2_weights = normalized_weights(exps.get(exp2, {}))
+    if exp1_weights is None or exp2_weights is None:
         return
-    exp1_split = None
-    exp1_state = exps.get(exp1, {}).get('state')
-    if exp1_state == 'active':
-        exp1_split = exps.get(exp1, {}).get('groups')
-    elif exp1_state == 'inactive':
-        exp1_split = {exps.get(exp1, {}).get('fallback'): 1}
-    elif exp1_state == 'rollout':
-        exp1_split = {exps.get(exp1, {}).get('rollout_group'): 1}
-    exp1_split = {k: v / sum(exp1_split.values()) for k, v in exp1_split.items()}
-    exp2_split = None
-    exp2_state = exps.get(exp2, {}).get('state')
-    if exp2_state == 'active':
-        exp2_split = exps.get(exp2, {}).get('groups')
-    elif exp2_state == 'inactive':
-        exp2_split = {exps.get(exp2, {}).get('fallback'): 1}
-    elif exp2_state == 'rollout':
-        exp2_split = {exps.get(exp2, {}).get('rollout_group'): 1}
-    exp2_split = {k: v / sum(exp2_split.values()) for k, v in exp2_split.items()}
     expected_split = {}
-    for g1, s1 in exp1_split.items():
-        for g2, s2 in exp2_split.items():
-            expected_split[(g1, g2)] = s1 * s2
+    for g1, w1 in exp1_weights.items():
+        for g2, w2 in exp2_weights.items():
+            expected_split[(g1, g2)] = w1 * w2
     events = await fetch_events()
     if events is None:
         return
@@ -142,6 +142,12 @@ async def main():
     args = parser.parse_args()
     N = args.num_visits
 
+    exps = await fetch_experiments() or {}
+    moon_mars_weights = normalized_weights(exps.get("moon_mars", {}))
+    white_gold_weights = normalized_weights(exps.get("white_gold_btn", {}))
+    if not exps:
+        moon_mars_weights = {"Moon": 0.5, "Mars": 0.5}
+
     moon_mars_counts = Counter()
     white_gold_counts = Counter()
     async with async_playwright() as p:
@@ -158,13 +164,15 @@ async def main():
         print("Moon/Mars Exp Split:")
         for group in sorted(moon_mars_counts):
             part = (moon_mars_counts[group] / N) * 100
-            print(f"{group}: {moon_mars_counts[group]} visits ({part:.2f}%)")
+            exact_part = moon_mars_weights[group] * 100
+            print(f"{group}: {moon_mars_counts[group]} visits ({part:.2f}%), Exact {exact_part:.2f}%")
         print("")
     if white_gold_counts:
         print("White/Gold Exp Split:")
         for group in sorted(white_gold_counts):
             part = (white_gold_counts[group] / N) * 100
-            print(f"{group}: {white_gold_counts[group]} visits ({part:.2f}%)")
+            exact_part = white_gold_weights[group] * 100
+            print(f"{group}: {white_gold_counts[group]} visits ({part:.2f}%), Exact {exact_part:.2f}%")
         print("")
 
     exp_name = "moon_mars"
@@ -178,21 +186,15 @@ async def main():
         print(f"{group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {CLICK_PROBS.get(group)*100:.2f}%")
     print("")
 
-    exps = await fetch_experiments()
-    if exps is None or len(exps) == 1:
+    if white_gold_weights is None:
         return
-    moon_mars_active = exps.get("moon_mars", {}).get('active')
-    moon_mars_split = exps.get("moon_mars", {}).get('groups') if moon_mars_active else {exps.get("moon_mars", {}).get('fallback'): 1}
-    total = sum(moon_mars_split.values())
-    normalized = {k: v / total for k, v in moon_mars_split.items()}
-
     exp_name = "white_gold_btn"
     visits, clicks = await count_exp_visits_clicks(exp_name)
     print("White/Gold Exp events:")
     for group in sorted(visits | clicks):
         v, c = visits[group], clicks[group]
         ctr, ci = ctr_ci(v, c)
-        expected_ctr = sum([normalized[g] * CLICK_PROBS[g] for g in normalized.keys()])
+        expected_ctr = sum([moon_mars_weights[g] * CLICK_PROBS[g] for g in moon_mars_weights.keys()])
         print(f"{group}: {v} visits, {c} clicks, Conv={ctr*100:.2f} +- {ci*100:.2f}%, Exact: {expected_ctr*100:.2f}%")
     print("")
 
