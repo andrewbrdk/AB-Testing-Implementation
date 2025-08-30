@@ -1,4 +1,4 @@
-# Web A/B Testing Demo
+# A/B Testing from Scratch
 
 <p align="center">
   <img src="https://i.postimg.cc/WsLGBwhw/samepage.png" alt="Moon, Mars" width="800" />
@@ -612,7 +612,9 @@ Moon: 508 visits, 55 clicks, Conv=10.83 +- 2.76%, Exact: 10.00%
 
 #### 6. Multiple Experiments
 
-A second experiment with two groups is added, creating four total page variants.
+A second experiment with two groups is added, resulting in four total page variants.
+Group assignment is independent across experiments because
+`experiment_name` is included in the hash `hash(device_id || experiment_name) % n_groups`.
 Both `api/experiments` and `api/expgroups` support multiple experiments.
 
 ```bash
@@ -682,14 +684,14 @@ INDEX_TEMPLATE = """
 
 EXPERIMENTS = {
     "moon_mars": {
-        "active": True,
         "groups": {'Moon': 50, 'Mars': 50},
-        "fallback": "Moon"
+        "fallback": "Moon",
+        "state": "active"
     },
     "white_gold_btn": {
-        "active": True,
         "groups": {'White': 50, 'Gold': 50},
-        "fallback": "White"
+        "fallback": "White",
+        "state": "active"
     }
 }
 
@@ -700,10 +702,9 @@ def api_expgroups():
     for exp_name, info in EXPERIMENTS.items():
         group = assign_group(device_id, exp_name) if device_id else ""
         result[exp_name] = {
-            "active": info["active"],
+            "state": info["state"],
             "fallback": info["fallback"],
-            "assigned": group,
-            "group": group if info["active"] else info["fallback"]
+            "group": group
         }
     if device_id:
         post_event("exp_groups", device_id, result)
