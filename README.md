@@ -1112,7 +1112,8 @@ the rollout group for rollout, and for active experiments
 checks stored assignments or creates a new one.
 * `def update_experiment()` - updates experiment state and group weights from the admin page.
 
-The "White/Gold" experiment serves only the selected rollout group.
+The 'Moon/Mars' experiment is active, assigning users to groups in a 50/50 split.
+The 'White/Gold' experiment serves only the selected rollout group.
 ```bash
 > python simulate_visits.py -n 1000
 
