@@ -51,6 +51,7 @@ Exp: [http://127.0.0.1:5000](http://127.0.0.1:5000)
 
 <p align="center">
   <img src="https://i.postimg.cc/rcMvk5tc/moonmars-horiz-4.png" alt="Page variants" width="800" />
+  <em>Page variants</em>
 </p>
 
 ```python
@@ -109,6 +110,7 @@ clear cookies and refresh the page.
 
 <p align="center">
 	<img src="https://i.postimg.cc/R9Mt9yFF/clear-cookies.png" alt="Clear Cookies" width="800"/>
+	<em>Open the page in an incognito window or clear cookies and refresh to see a different variant</em>
 </p>
 
 The `simulate_visits.py` script simulates page visits,
@@ -322,6 +324,7 @@ Events: [http://127.0.0.1:5000/events](http://127.0.0.1:5000/events)
 
 <p align="center">
   <img src="https://i.postimg.cc/nZ0DL2j1/events.png" alt="Events" width="800" />
+  <em>Events</em>
 </p>
 
 ```python
@@ -627,6 +630,7 @@ Groups: [http://127.0.0.1:5000/api/expgroups](http://127.0.0.1:5000/api/expgroup
 
 <p align="center">
   <img src="https://i.postimg.cc/c1C4CVry/multiple-exps.png" alt="Multiple Exps" width="800" />
+  <em>Two experiments with two groups result in four total page variants</em>
 </p>
 
 ```python
@@ -787,6 +791,7 @@ Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/exp
 
 <p align="center">
   <img src="https://i.postimg.cc/W227tVbS/experiments-admin.png" alt="Experiments Admin" width="800" />
+  <em>Experiments admin page</em>
 </p>
 
 ```python
@@ -879,6 +884,7 @@ Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/exp
 
 <p align="center">
   <img src="https://i.postimg.cc/FrF1NQw3/weights.png" alt="Change Weights" width="800" />
+  <em>Group weights</em>
 </p>
 
 ```python
@@ -1002,6 +1008,7 @@ Experiments Admin: [http://127.0.0.1:5000/experiments](http://127.0.0.1:5000/exp
 
 <p align="center">
   <img src="https://i.postimg.cc/WjxFJzK1/rollout.png" alt="Rollout" width="800" />
+  <em>Rollout</em>
 </p>
 
 ```python
