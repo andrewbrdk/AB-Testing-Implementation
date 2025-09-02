@@ -1,4 +1,4 @@
-# A/B Testing from Scratch
+# A/B Testing Implementation
 
 <p align="center">
   <img src="https://i.postimg.cc/WsLGBwhw/samepage.png" alt="Moon, Mars" width="800" />
@@ -22,8 +22,8 @@ and an experiments admin page.*
 Create a Python virtual environment and install the required packages to run the examples:
 
 ```bash
-git clone https://github.com/andrewbrdk/Web-AB-Testing-Demo
-cd Web-AB-Testing-Demo
+git clone https://github.com/andrewbrdk/AB-Testing-Implementation
+cd AB-Testing-Implementation
 python -m venv pyvenv
 source ./pyvenv/bin/activate
 pip install flask aiohttp playwright
@@ -353,7 +353,7 @@ TEMPLATE = """
                 body: JSON.stringify({
                     ts: ts,
                     device_id: deviceId,
-                    source: 'client',
+                    source: 'browser',
                     event: eventName,
                     exp_group: expGroup,
                     params: params
@@ -868,7 +868,7 @@ Experiments are unaffected by the changes.
 #### 8. Weights
 
 Changing group weights in active experiments can cause users to switch groups.
-While `hash(user_id || exp_name) % n_groups` stays constant,
+While `hash(user_id || exp_name)` stays constant,
 its mapping to groups depends on the weights.
 To prevent inconsistency, previously assigned groups must be stored.
 In this example, groups are stored on the backend in the `ASSIGNEDGROUPS` variable.
